@@ -62,7 +62,8 @@ main{padding:12px;max-width:640px;margin:0 auto;padding-bottom:40px}
 .placa.sm{min-width:0}.placa.sm b{font-size:24px;padding:0 8px 2px}.placa.sm i{font-size:8px}
 .ord{display:block;width:100%;text-align:left;border:1px solid var(--line);border-left:6px solid var(--acc);border-radius:12px;background:#fff;padding:12px;margin-bottom:10px;color:var(--ink)}
 .ord .oh{display:flex;align-items:center;gap:12px}.ord .oi{flex:1;min-width:0}.ord .on{font:800 20px/1.1 system-ui,sans-serif}.ord .os{font-size:14px;color:var(--mut);margin-top:2px}
-.ord .ol{font-size:14px;margin-top:8px;color:var(--ink)}.ord.run{border-left-color:#F2C230;background:#FFFBEA}
+.ord .olst{margin-top:8px;border-top:1px solid var(--line)}.ord .olst>div{display:flex;justify-content:space-between;align-items:baseline;padding:5px 2px;border-bottom:1px solid var(--line);font-size:16px}
+.ord .olt b{font:900 20px/1 system-ui,sans-serif}.ord .olq{font:800 18px/1 system-ui,sans-serif;white-space:nowrap}.ord .olst>div.oltot{border-bottom:0;font-size:14px;color:var(--mut);font-weight:700}.ord.run{border-left-color:#F2C230;background:#FFFBEA}
 .itab{width:100%;border-collapse:collapse;margin-top:6px}.itab th{font-size:11px;color:var(--mut);text-align:left;padding:4px 6px;border-bottom:1px solid var(--line);text-transform:uppercase}
 .itab td{padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:middle}.itab td.q{text-align:right;font:900 22px/1 system-ui,sans-serif;white-space:nowrap}.itab td.q small{font-size:13px;font-weight:700;color:var(--mut)}
 .itab td.lt{font:900 24px/1 system-ui,sans-serif}.itab tr.ok td{background:#E3F4E8}.itab tr.hl td{background:#FFF6D6}
@@ -95,7 +96,7 @@ main{padding:12px;max-width:640px;margin:0 auto;padding-bottom:40px}
 // e devolve as cargas (leituras + fotos) em arquivo.
 // A comunicação direta com o ERP (API) entra depois, no lugar do arquivo.
 // ======================================================================
-const VER="1.0.0";
+const VER="1.0.1";
 const $=s=>document.querySelector(s);
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=n=>n==null?"—":Number(n).toLocaleString("pt-BR");
@@ -189,7 +190,8 @@ function renderHome(a){
     <div class="card"><h2>Ordens de carregamento (${fmt(ords.length)})</h2>
     ${ords.length?ords.map(o=>{const c=cargaDaOrdem(o.id),tp=o.itens.reduce((t,x)=>t+(+x[1]||0),0),run=c&&c.status==="carregando";
       return`<button class="ord${run?" run":""}" type="button" data-o="${esc(o.id)}"><div class="oh">${placaHTML(o.placa,true)}<div class="oi"><div class="on">Ordem ${esc(o.ordem)}</div><div class="os">${esc(o.cli||"—")}${o.emissao?` · ${esc(o.emissao)}`:""}</div></div></div>
-        <div class="ol">${fmt(o.itens.length)} lote(s) · <b>${fmt(tp)}</b> fardos: ${o.itens.slice(0,6).map(x=>`<span class="pill">${esc(x[0])}</span>&nbsp;${fmt(x[1])}`).join(" · ")}${o.itens.length>6?" …":""}${run?`<br><span class="tag warn">em carregamento · ${fmt(c.lidos.length)}/${fmt(tp)}</span>`:""}</div></button>`}).join(""):`<p class="muted" style="margin:0">Nenhuma ordem aberta no pacote. Cadastre ou importe as ordens no app principal e baixe um pacote novo.</p>`}
+        <div class="olst">${o.itens.map(x=>{const n=c?c.lidos.filter(y=>y.l===String(x[0])).length:0;return`<div><span class="olt">Lote <b>${esc(x[0])}</b></span><span class="olq">${run?`${fmt(n)} / `:""}${fmt(x[1])} fd</span></div>`}).join("")}
+        <div class="oltot"><span>${fmt(o.itens.length)} lote(s)</span><span>${run?`${fmt(c.lidos.length)} / `:""}${fmt(tp)} fd</span></div></div>${run?`<span class="tag warn">em carregamento</span>`:""}</button>`}).join(""):`<p class="muted" style="margin:0">Nenhuma ordem aberta no pacote. Cadastre ou importe as ordens no app principal e baixe um pacote novo.</p>`}
     </div>`;
   wire();a.querySelectorAll("[data-o]").forEach(b=>b.onclick=()=>{const c=cargaDaOrdem(b.dataset.o);if(c&&c.status==="carregando"){S.atual=c.id;ui.flash=null;saveState();render();return}ui.view="ord";ui.oid=b.dataset.o;ui.prep=null;render();scrollTo(0,0)})}
 
