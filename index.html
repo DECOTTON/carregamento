@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Carregamento</title>
+<meta name="theme-color" content="#1F5E57">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Carregamento">
+<style>
+:root{--ink:#0F1B1A;--mut:#3E4A48;--bg:#EEF1F0;--card:#fff;--line:#C9D1CF;--acc:#1F5E57;--ok:#1E8E3E;--bad:#C62828;--warn:#B26A00;--warnbg:#FFF2D6}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
+button{font:inherit;cursor:pointer}
+header{flex-wrap:wrap;position:sticky;top:0;z-index:5;background:var(--acc);color:#fff;padding:10px 14px;padding-top:max(10px,env(safe-area-inset-top));display:flex;align-items:center;gap:10px}
+header h1{font-size:19px;margin:0;flex:1;display:flex;flex-wrap:wrap;align-items:center;column-gap:8px}header h1 small{flex:1 1 100%}.hlogo{width:30px;height:30px;border-radius:7px;background:#fff}
+header small{display:block;font-size:12px;opacity:.85;font-weight:500}
+.hb{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:8px;padding:7px 10px;font-size:14px;font-weight:700}
+main{padding:12px;max-width:640px;margin:0 auto;padding-bottom:40px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:12px}
+.card h2{font-size:14px;letter-spacing:.04em;text-transform:uppercase;margin:0 0 8px;color:var(--acc)}
+.btn{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:10px;padding:12px 14px;font-weight:700;font-size:16px}
+.btn.pri{background:var(--acc);border-color:var(--acc);color:#fff}
+.btn.big{width:100%;padding:16px;font-size:18px}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.btn.bad{background:var(--bad);border-color:var(--bad);color:#fff}
+.row{display:flex;gap:8px;flex-wrap:wrap}.row>*{flex:1 1 auto}
+.scan{width:100%;font:700 20px/1.2 ui-monospace,Menlo,monospace;padding:14px;border:3px solid var(--acc);border-radius:12px;color:var(--ink);background:#fff;-webkit-text-fill-color:var(--ink)}
+.scan::placeholder{font:500 15px system-ui,sans-serif;color:#6B7774;-webkit-text-fill-color:#6B7774}
+.hint{font-size:13px;color:var(--mut);margin:6px 0 0}
+.muted{color:var(--mut)}
+.lst{list-style:none;margin:0;padding:0}.lst li{border-top:1px solid var(--line);padding:9px 2px;display:flex;gap:8px;align-items:center}.lst li:first-child{border-top:0}
+.lst li b{font-size:17px}.lst li .r{margin-left:auto;text-align:right}
+.pill{display:inline-block;font-weight:800;background:#EEF1F0;border:1px solid var(--line);border-radius:6px;padding:1px 8px}
+.flash{border-radius:12px;padding:12px;text-align:center;font-weight:800;font-size:18px;margin:10px 0;min-height:52px;display:flex;align-items:center;justify-content:center}
+.flash.ok{background:#DDF3E3;color:#14552A}.flash.dup{background:var(--warnbg);color:#6B4100}.flash.idle{background:#EEF1F0;color:var(--mut);font-weight:600;font-size:15px}
+.flash.done{background:var(--ok);color:#fff;font-size:22px}
+.lock{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;color:#fff;gap:14px}
+.lock.bad{background:var(--bad)}.lock.warn{background:#8A5300}
+.lock h3{font-size:30px;margin:0;line-height:1.1}.lock p{font-size:19px;margin:0;max-width:520px}.lock .lt{font:900 54px/1 system-ui,sans-serif;background:#fff;color:var(--bad);border-radius:10px;padding:4px 16px}
+.lock.warn .lt{color:#8A5300}
+.lock .btn{background:#fff;color:var(--ink);border:0;font-size:19px;padding:16px 22px;max-width:420px;width:100%}
+.ovl{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:#fff;width:100%;max-width:640px;border-radius:16px 16px 0 0;padding:16px;padding-bottom:max(16px,env(safe-area-inset-bottom));max-height:88vh;overflow:auto}
+.sheet h3{margin:0 0 10px;font-size:19px}
+.cam{position:fixed;inset:0;z-index:45;background:#000;display:flex;flex-direction:column}
+.cam video{flex:1;width:100%;object-fit:cover}
+.cam .cbar{display:flex;gap:8px;padding:10px;padding-bottom:max(10px,env(safe-area-inset-bottom));background:#111}
+.cam .tgt{position:absolute;left:8%;right:8%;top:30%;height:26%;border:3px solid rgba(255,255,255,.85);border-radius:12px;pointer-events:none}
+.cam .cmsg{position:absolute;left:0;right:0;top:12px;text-align:center;color:#fff;font-weight:700;text-shadow:0 1px 3px #000}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#1D2E2C;color:#fff;padding:10px 16px;border-radius:10px;z-index:60;font-weight:600;max-width:90vw;text-align:center}
+.tag{font-size:12px;font-weight:700;border-radius:5px;padding:1px 6px}.tag.ok{background:#DDF3E3;color:#14552A}.tag.warn{background:var(--warnbg);color:#6B4100}.tag.blue{background:#E1ECF7;color:#123E66}
+.sbar{flex:1 1 100%;display:flex;gap:6px;margin-top:4px}.sbar .scan{flex:1;min-width:0;padding:10px 12px;font-size:19px;border:2px solid #F2C230}
+.sb{border:0;border-radius:10px;padding:0 12px;font-weight:800;font-size:16px;background:#fff;color:var(--ink)}.sb.pri{background:#F2C230}
+/* placa no padrão Mercosul */
+.placa{display:inline-flex;flex-direction:column;align-items:stretch;border:3px solid #1D2E2C;border-radius:8px;background:#fff;overflow:hidden;min-width:200px}
+.placa i{display:block;background:#123E99;color:#fff;font:700 10px/1.6 system-ui,sans-serif;letter-spacing:.12em;text-align:center;font-style:normal}
+.placa b{display:block;font:900 40px/1.1 ui-monospace,Menlo,monospace;letter-spacing:.06em;text-align:center;padding:2px 12px 4px;color:#0F1B1A}
+.placa.sm{min-width:0}.placa.sm b{font-size:24px;padding:0 8px 2px}.placa.sm i{font-size:8px}
+.ord{display:block;width:100%;text-align:left;border:1px solid var(--line);border-left:6px solid var(--acc);border-radius:12px;background:#fff;padding:12px;margin-bottom:10px;color:var(--ink)}
+.ord .oh{display:flex;align-items:center;gap:12px}.ord .oi{flex:1;min-width:0}.ord .on{font:800 20px/1.1 system-ui,sans-serif}.ord .os{font-size:14px;color:var(--mut);margin-top:2px}
+.ord .ol{font-size:14px;margin-top:8px;color:var(--ink)}.ord.run{border-left-color:#F2C230;background:#FFFBEA}
+.itab{width:100%;border-collapse:collapse;margin-top:6px}.itab th{font-size:11px;color:var(--mut);text-align:left;padding:4px 6px;border-bottom:1px solid var(--line);text-transform:uppercase}
+.itab td{padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:middle}.itab td.q{text-align:right;font:900 22px/1 system-ui,sans-serif;white-space:nowrap}.itab td.q small{font-size:13px;font-weight:700;color:var(--mut)}
+.itab td.lt{font:900 24px/1 system-ui,sans-serif}.itab tr.ok td{background:#E3F4E8}.itab tr.hl td{background:#FFF6D6}
+.itab .bar{height:8px;margin-top:5px}
+.bar{height:14px;background:#DDE3E1;border-radius:7px;overflow:hidden}.bar i{display:block;height:100%;background:var(--ok);transition:width .2s}
+.cnt{font:900 58px/1 system-ui,sans-serif;text-align:center;margin:6px 0 2px}.cnt small{font-size:26px;color:var(--mut);font-weight:800}
+.foto{display:flex;gap:10px;align-items:center;margin-top:8px}.foto img{width:120px;height:90px;object-fit:cover;border-radius:8px;border:1px solid var(--line);background:#EEF1F0}
+.foto .fi{flex:1;font-size:14px}
+.chk{display:flex;gap:10px;align-items:flex-start;padding:12px;border:2px solid var(--line);border-radius:10px;margin-top:10px;font-size:16px;font-weight:600}.chk input{width:24px;height:24px;flex:none;margin:0}
+.chk.on{border-color:var(--ok);background:#E3F4E8}
+.fld{display:block;margin-top:10px}.fld span{display:block;font-size:12px;font-weight:700;color:var(--mut);margin-bottom:3px}
+.fld input,.fld textarea{width:100%;font-size:17px;padding:10px;border:1px solid var(--line);border-radius:10px;color:var(--ink);background:#fff;font-family:inherit}
+.sbad{margin-top:10px;padding:10px;border-radius:8px;background:#FDECEA;color:#8A1C12;font-weight:600}
+.sok{margin-top:10px;padding:10px;border-radius:8px;background:#E3F4E8;color:#14552A;font-weight:600}
+.hide{display:none!important}
+</style>
+</head>
+<body>
+<header><h1><img src="logo.png" alt="" class="hlogo">Carregamento<small id="hSub">Sem pacote carregado</small></h1><button class="hb" id="bMenu" type="button">☰ Menu</button>
+<div id="sbar" class="sbar hide"><input class="scan" id="scan" autocomplete="off" autocorrect="off" spellcheck="false" inputmode="numeric" enterkeyhint="go" placeholder="Etiqueta SAI ou Nº do fardo"><button class="sb" id="bGo" type="button">OK</button><button class="sb pri" id="bCam" type="button" title="Câmera">📷</button></div></header>
+<main id="app"></main>
+<input type="file" id="fPac" accept=".txt,.json,text/plain,application/json" hidden>
+<input type="file" id="fFoto" accept="image/*" capture="environment" hidden>
+<script>
+"use strict";
+// ======================================================================
+// App offline de carregamento (expedição) — coletor / celular
+// Carrega o "pacote" gerado no app principal (com as ordens de carregamento),
+// confere a placa (foto), lê cada fardo e confere lote e quantidade pedida,
+// e devolve as cargas (leituras + fotos) em arquivo.
+// A comunicação direta com o ERP (API) entra depois, no lugar do arquivo.
+// ======================================================================
+const VER="1.0.0";
+const $=s=>document.querySelector(s);
+const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt=n=>n==null?"—":Number(n).toLocaleString("pt-BR");
+const g3=v=>String(v).replace(/\B(?=(\d{3})+(?!\d))/g," ");
+const nowISO=()=>new Date().toISOString();
+const uid=()=>"c"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const dtf=t=>t?new Date(t).toLocaleString("pt-BR",{dateStyle:"short",timeStyle:"short"}):"—";
+function toast(t,ms){const d=document.createElement("div");d.className="toast";d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),ms||2600)}
+const placaFmt=p=>{const t=String(p||"").toUpperCase().replace(/[^0-9A-Z]/g,"");return t.length===7?t.slice(0,3)+(/[A-Z]/.test(t[4])?"":"-")+t.slice(3):t||"—"};
+const placaHTML=(p,sm)=>`<span class="placa${sm?" sm":""}"><i>BRASIL</i><b>${esc(placaFmt(p))}</b></span>`;
+
+// ---------- armazenamento no aparelho (IndexedDB) ----------
+const DB={db:null,
+  open(){return this.db?Promise.resolve(this.db):new Promise((ok,ko)=>{const r=indexedDB.open("carregamento",1);r.onupgradeneeded=()=>r.result.createObjectStore("kv");r.onsuccess=()=>{this.db=r.result;ok(this.db)};r.onerror=()=>ko(r.error)})},
+  async get(k){const db=await this.open();return new Promise((ok,ko)=>{const q=db.transaction("kv").objectStore("kv").get(k);q.onsuccess=()=>ok(q.result);q.onerror=()=>ko(q.error)})},
+  async set(k,v){const db=await this.open();return new Promise((ok,ko)=>{const t=db.transaction("kv","readwrite");t.objectStore("kv").put(v,k);t.oncomplete=()=>ok();t.onerror=()=>ko(t.error)})}};
+
+// ---------- estado ----------
+let PAC=null;          // pacote cru
+let IX=null;           // índices do pacote
+let S={cargas:[],atual:null,disp:"",conf:""};  // cargas deste aparelho (persistidas)
+let ui={view:"home",oid:null,lock:null,flash:null,prep:null};
+async function saveState(){try{await DB.set("estado",S)}catch(e){toast("Não foi possível salvar no aparelho!")}}
+
+function buildIndex(P){
+  const f=new Map(),byN=new Map();const F=P.f,st=P.fs||3;
+  for(let i=0;i<F.length;i+=st){const p=F[i],n=F[i+1];f.set(p*1e7+n,i);const a=byN.get(n);if(a)a.push(p);else byN.set(n,[p])}
+  const lotes=new Map();for(const[c,prod,qtd,exp,expd,bx,dexp,cli]of P.lotes||[])lotes.set(String(c),{c:String(c),prod,qtd,exp,expd:!!expd,dexp:dexp||"",cli:cli||""});
+  const cexp=new Map();for(const x of P.cexp||[]){if(Array.isArray(x))cexp.set(x[0],x[1]||"");else cexp.set(String(x),"")}
+  return{f,byN,lotes,st,cexp}}
+const nFard=P=>Math.round(P.f.length/(P.fs||3));
+const rowLote=ri=>{const li=PAC.f[ri+2];return li>=0?PAC.lc[li]:""};
+const rowDate=(ri,o)=>{if(!PAC.dd||(PAC.fs||3)<5)return"";return PAC.dd[PAC.f[ri+o]]||""};
+const prodOfLote=c=>{const L=IX.lotes.get(c);if(L&&L.prod)return L.prod;const i=PAC.lc.indexOf(c);return i>=0?(PAC.lp[i]||""):""};
+const cfgFoto=k=>{const c=(PAC&&PAC.carg)||{};return c[k]==="rec"?"rec":c[k]==="nao"?"nao":"obrig"}; // fp = placa, fl = lacre
+
+// ---------- leitura da etiqueta: SAI (código de barras) ou link Abrapa (QR) ----------
+function parseSAI(v){const d=String(v??"").replace(/\D/g,"");if(!d)return null;
+  if(d.length===20&&d.startsWith("00")){const ss=d.slice(2);let t=0;for(let i=0;i<17;i++)t+=+ss[16-i]*(i%2?1:3);
+    return{num:+d.slice(13,19),prensa:+d[12],ok:(10-t%10)%10===+ss[17],sai:true,code:d}}
+  if(d.length<=7)return{num:+d,prensa:null,ok:true,sai:false};return{bad:true}}
+function scanParse(txt){
+  const m=String(txt||"").match(/\/00\/(\d{18})(?!\d)/);if(m){const p=parseSAI("00"+m[1]);if(p&&p.sai)return p}
+  const d=String(txt||"").replace(/\D/g,"");let bad=null;
+  for(let i=0;i+20<=d.length;i++){if(d[i]!=="0"||d[i+1]!=="0")continue;const p=parseSAI(d.slice(i,i+20));if(p&&p.sai){if(p.ok)return p;bad=bad||p}}
+  if(bad)return{...bad,badCheck:true};if(d&&d.length<=7)return{num:+d,prensa:null,ok:true,sai:false};return null}
+// fardo no pacote → {p,n,lote,ri} (sem prensa: prefere a prensa cujo lote está na carga)
+function findFard(P,lotesCarga){
+  const code=P.code||"";
+  if(P.prensa){const ri=IX.f.get(P.prensa*1e7+P.num);return ri===undefined?null:{p:P.prensa,n:P.num,lote:rowLote(ri),ri,code}}
+  const ps=IX.byN.get(P.num)||[];if(!ps.length)return null;
+  const c=ps.map(p=>{const ri=IX.f.get(p*1e7+P.num);return{p,n:P.num,lote:rowLote(ri),ri,code}});
+  if(c.length===1)return c[0];const m=c.filter(x=>lotesCarga&&lotesCarga.has(x.lote));return m.length===1?m[0]:{amb:c}}
+
+// ---------- sons e vibração ----------
+let AC=null;function beep(f,ms,n){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();const t0=AC.currentTime;for(let i=0;i<(n||1);i++){const o=AC.createOscillator(),g=AC.createGain();o.frequency.value=f;o.type="square";g.gain.value=.12;o.connect(g);g.connect(AC.destination);const s=t0+i*(ms+70)/1000;o.start(s);o.stop(s+ms/1000)}}catch(e){}}
+const vib=p=>{try{navigator.vibrate&&navigator.vibrate(p)}catch(e){}};
+const sOk=()=>{beep(1250,70);vib(40)},sDup=()=>{beep(600,120,2);vib([60,60,60])},sBad=()=>{beep(260,260,3);vib([300,120,300,120,300])},sLote=()=>{beep(1500,120,3);vib([100,60,100])};
+
+// ---------- cargas ----------
+const cur=()=>S.cargas.find(c=>c.id===S.atual)||null;
+const ordemDe=id=>((PAC&&PAC.ordens)||[]).find(o=>String(o.id)===String(id))||null;
+const cargaDaOrdem=id=>S.cargas.find(c=>String(c.oid)===String(id))||null;
+const pedido=(c,l)=>{const it=c.itens.find(x=>String(x[0])===String(l));return it?+it[1]||0:0};
+const lidosLote=(c,l)=>c.lidos.filter(x=>x.l===l).length;
+const totPed=c=>c.itens.reduce((t,x)=>t+(+x[1]||0),0);
+const completa=c=>c.itens.every(x=>lidosLote(c,String(x[0]))>=(+x[1]||0));
+// fardo já expedido: data de saída na planilha, carga já registrada no app principal, ou lido em outra carga deste aparelho
+function jaExpedido(F,c){const key=`${F.p}-${F.n}`;const ds=rowDate(F.ri,4);if(ds)return`saiu em ${ds}`;
+  if(IX.cexp.has(key)){const o=IX.cexp.get(key);return o?`já carregado na ordem ${o}`:"já carregado em outra carga"}
+  for(const z of S.cargas){if(z===c)continue;if(z.lidos.some(x=>x.p===F.p&&x.n===F.n))return`lido na carga da ordem ${z.ordem||"?"} (placa ${placaFmt(z.placa)}) neste aparelho`}
+  return null}
+
+// ---------- telas ----------
+function render(){
+  const c=cur();
+  $("#sbar").classList.toggle("hide",!(PAC&&c&&c.status==="carregando"));
+  $("#hSub").textContent=PAC?`Pacote de ${dtf(PAC.gerado)} · ${S.disp||"aparelho"}`:"Sem pacote carregado";
+  const a=$("#app");
+  if(!PAC){a.innerHTML=`<div class="card"><h2>Comece por aqui</h2><p>Este app faz o <b>carregamento dos fardos</b> pela leitura da etiqueta, confere a placa e a quantidade de cada lote, e funciona <b>sem internet</b>.</p>
+    <ol><li>No app principal (com internet): <b>Carregamento 🚚 › Pacote para o coletor</b>.</li><li>Aqui: toque em <b>Carregar pacote</b> e escolha o arquivo <b>Pacote para o coletor - …</b> (.txt) — da pasta Downloads ou do <b>Google Drive</b>.</li></ol>
+    <button class="btn pri big" type="button" id="bPac">📂 Carregar pacote</button></div>`;wire();return}
+  if(c&&c.status==="carregando"){renderCarga(a,c);return}
+  if(ui.view==="ord"&&ui.oid!=null){renderOrdem(a);return}
+  renderHome(a)}
+
+function renderHome(a){
+  const ords=(PAC.ordens||[]).filter(o=>{const c=cargaDaOrdem(o.id);return !c||c.status==="carregando"||c.status==="pronta"});
+  const pend=S.cargas.filter(c=>c.status==="fechada"&&!c.exp).length;
+  a.innerHTML=`${pend?`<div class="card" style="border-color:#F2C230;background:#FFFBEA"><b>${pend} carga(s) fechada(s) aguardando envio.</b><p class="hint" style="margin:4px 0 8px">Exporte e importe no app principal para dar a baixa nos lotes.</p><button class="btn pri big" type="button" id="bExp">⤓ Exportar cargas (${pend})</button></div>`:""}
+    <div class="card"><h2>Ordens de carregamento (${fmt(ords.length)})</h2>
+    ${ords.length?ords.map(o=>{const c=cargaDaOrdem(o.id),tp=o.itens.reduce((t,x)=>t+(+x[1]||0),0),run=c&&c.status==="carregando";
+      return`<button class="ord${run?" run":""}" type="button" data-o="${esc(o.id)}"><div class="oh">${placaHTML(o.placa,true)}<div class="oi"><div class="on">Ordem ${esc(o.ordem)}</div><div class="os">${esc(o.cli||"—")}${o.emissao?` · ${esc(o.emissao)}`:""}</div></div></div>
+        <div class="ol">${fmt(o.itens.length)} lote(s) · <b>${fmt(tp)}</b> fardos: ${o.itens.slice(0,6).map(x=>`<span class="pill">${esc(x[0])}</span>&nbsp;${fmt(x[1])}`).join(" · ")}${o.itens.length>6?" …":""}${run?`<br><span class="tag warn">em carregamento · ${fmt(c.lidos.length)}/${fmt(tp)}</span>`:""}</div></button>`}).join(""):`<p class="muted" style="margin:0">Nenhuma ordem aberta no pacote. Cadastre ou importe as ordens no app principal e baixe um pacote novo.</p>`}
+    </div>`;
+  wire();a.querySelectorAll("[data-o]").forEach(b=>b.onclick=()=>{const c=cargaDaOrdem(b.dataset.o);if(c&&c.status==="carregando"){S.atual=c.id;ui.flash=null;saveState();render();return}ui.view="ord";ui.oid=b.dataset.o;ui.prep=null;render();scrollTo(0,0)})}
+
+// ordem escolhida: confere a placa (foto) e inicia
+function renderOrdem(a){const o=ordemDe(ui.oid);if(!o){ui.view="home";render();return}
+  const P=ui.prep||(ui.prep={foto:null,ok:false,semFoto:"",conf:S.conf||""});const fp=cfgFoto("fp"),tp=o.itens.reduce((t,x)=>t+(+x[1]||0),0);
+  const pode=P.ok&&P.conf.trim()&&(P.foto||fp!=="obrig");
+  a.innerHTML=`<div class="card"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><h2 style="flex:1;margin:0">Ordem ${esc(o.ordem)}</h2><button class="btn" type="button" id="bVolta" style="padding:6px 12px">◀ Voltar</button></div>
+    <div style="text-align:center;margin:6px 0 10px">${placaHTML(o.placa)}</div>
+    <p style="margin:0 0 4px"><b>Cliente:</b> ${esc(o.cli||"—")}${o.emissao?` · <b>Emissão:</b> ${esc(o.emissao)}`:""}</p>
+    <table class="itab"><thead><tr><th>Lote</th><th>Produtor</th><th style="text-align:right">Fardos</th></tr></thead><tbody>
+    ${o.itens.map(x=>`<tr><td class="lt">${esc(x[0])}</td><td>${esc(prodOfLote(String(x[0]))||"—")}</td><td class="q">${fmt(x[1])}</td></tr>`).join("")}
+    <tr><td colspan="2"><b>Total</b></td><td class="q">${fmt(tp)}</td></tr></tbody></table></div>
+    <div class="card"><h2>Conferência da placa</h2>
+    ${fp==="nao"?"":`<div class="foto">${P.foto?`<img src="${P.foto}" alt="Foto da placa">`:`<img alt="">`}<div class="fi">${P.foto?`<span class="tag ok">✓ foto tirada</span><br><button class="btn" type="button" id="bFoto" style="margin-top:6px;padding:8px 12px">↺ Tirar de novo</button>`:`<button class="btn ${fp==="obrig"?"pri":""}" type="button" id="bFoto" style="width:100%">📷 Foto da placa${fp==="obrig"?" (obrigatória)":""}</button>`}</div></div>`}
+    ${fp==="rec"&&!P.foto?`<label class="fld"><span>Sem foto? Informe o motivo (opcional)</span><input id="iSem" value="${esc(P.semFoto)}" placeholder="ex.: câmera com defeito"></label>`:""}
+    <label class="chk${P.ok?" on":""}"><input type="checkbox" id="cOk"${P.ok?" checked":""}> <span>Conferi: a placa do caminhão é <b>${esc(placaFmt(o.placa))}</b></span></label>
+    <label class="fld"><span>Conferente (quem está carregando)</span><input id="iConf" value="${esc(P.conf)}" placeholder="Nome" autocomplete="name"></label>
+    <button class="btn pri big" type="button" id="bIni" style="margin-top:12px"${pode?"":" disabled"}>▶ Iniciar carregamento</button>
+    ${!pode?`<p class="hint">${!P.ok?"Confira a placa e marque a caixa.":fp==="obrig"&&!P.foto?"Tire a foto da placa para iniciar.":"Informe o conferente."}</p>`:""}</div>`;
+  $("#bVolta").onclick=()=>{ui.view="home";ui.oid=null;ui.prep=null;render()};
+  const bf=$("#bFoto");if(bf)bf.onclick=()=>tirarFoto(d=>{P.foto=d;render()});
+  $("#cOk").onchange=e=>{P.ok=e.target.checked;render()};
+  const ic=$("#iConf");ic.oninput=()=>{P.conf=ic.value;const b=$("#bIni");if(b)b.disabled=!(P.ok&&P.conf.trim()&&(P.foto||fp!=="obrig"))};ic.onchange=()=>render();
+  const is=$("#iSem");if(is)is.oninput=()=>{P.semFoto=is.value};
+  $("#bIni").onclick=()=>{if(!(P.ok&&P.conf.trim()&&(P.foto||fp!=="obrig")))return;S.conf=P.conf.trim();
+    let c=cargaDaOrdem(o.id);if(!c){c={id:uid(),oid:o.id,ordem:o.ordem,placa:o.placa,cli:o.cli||"",emissao:o.emissao||"",itens:o.itens.map(x=>[String(x[0]),+x[1]||0]),conf:S.conf,disp:S.disp||"",
+      inicio:nowISO(),fim:null,status:"carregando",fotoPlaca:P.foto?{d:P.foto,t:nowISO()}:null,semFotoPlaca:P.foto?"":(P.semFoto||"").trim(),fotoLacre:null,semFotoLacre:"",parcial:false,motivo:"",lidos:[],alertas:[],desc:[],exp:false};S.cargas.push(c)}
+    else{c.status="carregando";if(P.foto)c.fotoPlaca={d:P.foto,t:nowISO()}}
+    S.atual=c.id;ui.view="home";ui.oid=null;ui.prep=null;ui.flash={c:"idle",t:"Leia o primeiro fardo"};saveState();render();focusScan()}}
+
+// carregamento em andamento: contador por lote
+function renderCarga(a,c){const tp=totPed(c),tl=c.lidos.length,fl=ui.flash||{c:"idle",t:"Aguardando leitura…"},last=ui.lastLote;
+  const done=completa(c);
+  a.innerHTML=`<div class="card"><div style="display:flex;align-items:center;gap:12px">${placaHTML(c.placa,true)}<div style="flex:1;min-width:0"><div style="font:800 19px/1.1 system-ui">Ordem ${esc(c.ordem)}</div><div class="hint" style="margin:2px 0 0">${esc(c.cli||"")} · ${esc(c.conf||"")}</div></div></div>
+    <div class="flash ${done?"done":fl.c}">${done?"✓ CARGA COMPLETA — toque em Finalizar":esc(fl.t)}</div>
+    <div class="cnt">${fmt(tl)}<small> / ${fmt(tp)}</small></div><div class="bar"><i style="width:${tp?Math.min(100,tl/tp*100):0}%"></i></div>
+    <table class="itab" style="margin-top:10px"><thead><tr><th>Lote</th><th style="text-align:right">Lidos / pedidos</th></tr></thead><tbody>
+    ${c.itens.map(([l,q])=>{const n=lidosLote(c,l);return`<tr class="${n>=q?"ok":l===last?"hl":""}"><td><span class="lt" style="font:900 24px/1 system-ui">${esc(l)}</span><div class="hint" style="margin:2px 0 0">${esc(prodOfLote(l)||"")}</div><div class="bar"><i style="width:${q?Math.min(100,n/q*100):0}%"></i></div></td><td class="q">${fmt(n)}<small> / ${fmt(q)}</small>${n>=q?"<br><span class=\"tag ok\">✓ completo</span>":""}</td></tr>`}).join("")}</tbody></table>
+    <p class="hint" id="raw">${ui.lastRaw?`Última leitura recebida: ${esc(ui.lastRaw.v)}`:""}</p>
+    ${c.alertas.length?`<p class="hint">⚠ ${fmt(c.alertas.length)} leitura(s) recusada(s) (não contadas)</p>`:""}
+    <div class="row" style="margin-top:10px"><button class="btn" type="button" id="bUndo"${c.lidos.length?"":" disabled"}>↶ Desfazer última</button><button class="btn" type="button" id="bPausa">⏸ Pausar</button></div>
+    <button class="btn ${done?"pri":""} big" type="button" id="bFim" style="margin-top:8px">🏁 Finalizar carga</button></div>`;
+  wire();
+  $("#bUndo").onclick=()=>{const x=c.lidos.pop();if(!x)return;saveState();ui.flash={c:"dup",t:`Desfeito: P${x.p} ${g3(x.n)} (lote ${x.l})`};render()};
+  $("#bPausa").onclick=()=>{S.atual=null;ui.flash=null;saveState();render();toast("Carga pausada: continue tocando na ordem.")};
+  $("#bFim").onclick=()=>finalizar(c)}
+
+// finalizar: confere o que falta, foto do lacre / carga fechada
+function finalizar(c){const fl=cfgFoto("fl"),falta=c.itens.map(([l,q])=>[l,q,lidosLote(c,l)]).filter(x=>x[2]<x[1]);
+  const st={foto:c.fotoLacre?c.fotoLacre.d:null,motivo:c.motivo||"",sem:c.semFotoLacre||""};
+  const draw=()=>{const ok=(!falta.length||st.motivo.trim())&&(st.foto||fl!=="obrig");
+    showSheet(`<h3>Finalizar carga · ordem ${esc(c.ordem)}</h3>
+      ${falta.length?`<div class="sbad">Faltam fardos:<br>${falta.map(([l,q,n])=>`Lote <b>${esc(l)}</b>: ${fmt(n)} de ${fmt(q)} (faltam ${fmt(q-n)})`).join("<br>")}</div>
+        <label class="fld"><span>Motivo para fechar incompleta (obrigatório)</span><input id="fMot" value="${esc(st.motivo)}" placeholder="ex.: caminhão lotado, fardo não encontrado"></label>`:`<div class="sok">✓ Todos os lotes com a quantidade pedida (${fmt(c.lidos.length)} fardos).</div>`}
+      ${fl==="nao"?"":`<p style="margin:12px 0 0;font-weight:700">Foto da carga fechada / lacre${fl==="obrig"?" (obrigatória)":""}</p>
+      <div class="foto">${st.foto?`<img src="${st.foto}" alt="">`:`<img alt="">`}<div class="fi"><button class="btn ${st.foto?"":"pri"}" type="button" id="fFt" style="width:100%">${st.foto?"↺ Tirar de novo":"📷 Tirar foto"}</button></div></div>
+      ${fl==="rec"&&!st.foto?`<label class="fld"><span>Sem foto? Motivo (opcional)</span><input id="fSem" value="${esc(st.sem)}"></label>`:""}`}
+      <button class="btn pri big" type="button" id="fOk" style="margin-top:14px"${ok?"":" disabled"}>✓ Fechar carga</button>
+      <button class="btn big" type="button" data-x style="margin-top:8px">Voltar ao carregamento</button>`,o=>{
+      const m=o.querySelector("#fMot");if(m)m.oninput=()=>{st.motivo=m.value;o.querySelector("#fOk").disabled=!(st.motivo.trim()&&(st.foto||fl!=="obrig"))};
+      const s=o.querySelector("#fSem");if(s)s.oninput=()=>{st.sem=s.value};
+      const ft=o.querySelector("#fFt");if(ft)ft.onclick=()=>tirarFoto(d=>{st.foto=d;draw()});
+      o.querySelector("#fOk").onclick=()=>{if(falta.length&&!st.motivo.trim())return;if(fl==="obrig"&&!st.foto)return;
+        c.fotoLacre=st.foto?{d:st.foto,t:nowISO()}:null;c.semFotoLacre=st.foto?"":st.sem.trim();c.parcial=!!falta.length;c.motivo=falta.length?st.motivo.trim():"";
+        c.fim=nowISO();c.status="fechada";c.exp=false;S.atual=null;ui.flash=null;saveState();closeSheet();render();
+        showSheet(`<h3>Carga fechada ✓</h3><p>Ordem <b>${esc(c.ordem)}</b> · placa <b>${esc(placaFmt(c.placa))}</b> · ${fmt(c.lidos.length)} fardos${c.parcial?" (parcial)":""}.</p><p>Exporte as cargas e importe no app principal para dar a baixa nos lotes.</p><button class="btn pri big" type="button" id="kExp" style="margin-bottom:8px">⤓ Exportar agora</button><button class="btn big" type="button" data-x>Depois</button>`,o2=>{o2.querySelector("#kExp").onclick=()=>{closeSheet();exportar()}})}})};
+  draw()}
+
+// ---------- foto (câmera do aparelho) reduzida para ~1280 px JPEG ----------
+let _fotoCb=null;
+function tirarFoto(cb){_fotoCb=cb;const i=$("#fFoto");i.value="";i.click()}
+$("#fFoto").onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value="";if(!f||!_fotoCb)return;const cb=_fotoCb;_fotoCb=null;
+  try{const d=await reduzFoto(f);cb(d)}catch(err){toast("Não foi possível ler a foto.")}};
+function reduzFoto(f){return new Promise((ok,ko)=>{const u=URL.createObjectURL(f),im=new Image();im.onload=()=>{try{const k=Math.min(1,1280/Math.max(im.naturalWidth,im.naturalHeight)),cv=document.createElement("canvas");cv.width=Math.round(im.naturalWidth*k);cv.height=Math.round(im.naturalHeight*k);
+  cv.getContext("2d").drawImage(im,0,0,cv.width,cv.height);URL.revokeObjectURL(u);ok(cv.toDataURL("image/jpeg",.72))}catch(e){ko(e)}};im.onerror=()=>{URL.revokeObjectURL(u);ko()};im.src=u})}
+
+function focusScan(){const i=$("#scan");const c=cur();if(ui.kbOff)return;if(i&&c&&c.status==="carregando"&&!ui.lock&&!$(".ovl")&&!$(".cam")&&document.activeElement!==i){try{i.focus({preventScroll:true})}catch(e){i.focus()}}}
+function wire(){const on=(id,f)=>{const e=$(id);if(e)e.onclick=f};on("#bPac",()=>$("#fPac").click());on("#bExp",exportar)}
+// campo de leitura fixo (nunca é recriado: o teclado do coletor continua aberto entre as leituras)
+(()=>{const i=$("#scan");let tm=null;const go=()=>{clearTimeout(tm);const v=i.value.trim();i.value="";_pv="";if(v)onRead(v)};
+  $("#bGo").onclick=go;$("#bCam").onclick=openCam;
+  i.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key==="Tab"){e.preventDefault();go()}});
+  i.addEventListener("focus",()=>{ui.kbOff=false});
+  i.addEventListener("input",()=>{clearTimeout(tm);const v=i.value;if(v)noteRaw(v);if(/\/00\/\d{18}/.test(v)||/\d{20}/.test(v.replace(/\D/g,"")))tm=setTimeout(go,180)});
+  i.addEventListener("blur",()=>setTimeout(()=>{const a=document.activeElement;if(!a||a===document.body)focusScan()},300))})();
+document.addEventListener("pointerdown",e=>{const b=e.target.closest&&e.target.closest("button,.btn");if(b&&document.activeElement===$("#scan"))e.preventDefault()},true);
+let _pv="",_pt=0;
+setInterval(()=>{const i=$("#scan");if(!i||ui.lock)return;const v=i.value;if(v!==_pv){_pv=v;_pt=Date.now();if(v)noteRaw(v);return}
+  if(v&&Date.now()-_pt>350&&(/\/00\/\d{18}/.test(v)||v.replace(/\D/g,"").length>=12)){i.value="";_pv="";onRead(v.trim())}},150);
+let _kb="",_kt=0,_kto=null;
+document.addEventListener("keydown",e=>{const t=e.target;if(t&&(t.tagName==="INPUT"||t.tagName==="TEXTAREA"))return;if(ui.lock)return;const c=cur();if(!c||c.status!=="carregando")return;
+  if(e.key==="Enter"){if(_kb.length>=6){const v=_kb;_kb="";noteRaw(v);onRead(v)}_kb="";return}
+  if(e.key&&e.key.length===1){const n=Date.now();if(n-_kt>300)_kb="";_kb+=e.key;_kt=n;clearTimeout(_kto);
+    _kto=setTimeout(()=>{if(_kb.length>=12){const v=_kb;_kb="";noteRaw(v);onRead(v)}else _kb=""},350)}},true);
+function noteRaw(v){ui.lastRaw={v:String(v).slice(0,80),t:Date.now()};const e=$("#raw");if(e)e.textContent=`Última leitura recebida: ${ui.lastRaw.v}`}
+
+// ---------- uma leitura ----------
+function onRead(raw){
+  if(ui.lock){sBad();return}
+  const c=cur();if(!c||c.status!=="carregando")return;
+  const P=scanParse(String(raw).trim());
+  if(!P||P.bad){ui.flash={c:"dup",t:"Código não reconhecido"};sDup();render();return}
+  const F=findFard(P,new Set(c.itens.map(x=>String(x[0]))));
+  if(!F){c.desc.push({p:P.prensa||0,n:P.num,t:nowISO()});saveState();
+    lockScreen("warn",`<h3>⚠ FARDO FORA DO PACOTE</h3><p>P${P.prensa||"?"} ${g3(P.num)} não está no pacote deste aparelho (classificado depois da última sincronização?).</p><p><b>Não foi contado.</b> Baixe um pacote novo ou separe o fardo.</p>`,[["Entendi — continuar",unlock]]);return}
+  if(F.amb){showSheet(`<h3>Nº ${g3(P.num)} existe nas prensas ${F.amb.map(x=>x.p).join(" e ")}</h3><p>Qual é a deste fardo?</p>${F.amb.map(x=>`<button class="btn big" type="button" data-amb="${x.p}" style="margin-bottom:8px">Prensa ${x.p} · lote ${esc(x.lote||"sem lote")}</button>`).join("")}`,o=>o.querySelectorAll("[data-amb]").forEach(b=>b.onclick=()=>{closeSheet();const F2=F.amb.find(x=>String(x.p)===b.dataset.amb);conta(c,F2)}));return}
+  conta(c,F)}
+function conta(c,F){const key=`${F.p}-${F.n}`,rec=k=>{c.alertas.push({p:F.p,n:F.n,l:F.lote||"",k,t:nowISO()});saveState()};
+  if(c.lidos.some(x=>x.p===F.p&&x.n===F.n)){ui.flash={c:"dup",t:`Já lido nesta carga: P${F.p} ${g3(F.n)} (não contou de novo)`};sDup();render();return}
+  const je=jaExpedido(F,c);
+  if(je){rec("exp");sBad();lockScreen("bad",`<h3>⚠ FARDO JÁ EXPEDIDO</h3><p>Fardo <b>P${F.p} ${g3(F.n)}</b> do lote</p><div class="lt">${esc(F.lote||"—")}</div><p>${esc(je)}.</p><p><b>Este fardo não foi contado.</b></p>`,[["Retirei o fardo — continuar",unlock]]);return}
+  if(!F.lote){rec("semlote");sBad();lockScreen("bad",`<h3>⚠ FARDO SEM LOTE</h3><p>P${F.p} ${g3(F.n)} ainda não tem lote (aguardando HVI).</p><p><b>Não foi contado.</b></p>`,[["Retirei o fardo — continuar",unlock]]);return}
+  const q=pedido(c,F.lote);
+  if(!q){rec("lote");sBad();lockScreen("bad",`<h3>⚠ NÃO É DESTA CARGA</h3><p>Fardo <b>P${F.p} ${g3(F.n)}</b> é do lote</p><div class="lt">${esc(F.lote)}</div><p>${esc(prodOfLote(F.lote)||"")}</p><p>Esta carga leva os lotes <b>${c.itens.map(x=>esc(x[0])).join(", ")}</b>.<br><b>Este fardo não foi contado.</b></p>`,[["Retirei o fardo — continuar",unlock]]);return}
+  const n=lidosLote(c,F.lote);
+  if(n>=q){rec("qtd");sBad();lockScreen("warn",`<h3>⚠ LOTE JÁ COMPLETO</h3><p>O lote</p><div class="lt">${esc(F.lote)}</div><p>já tem <b>${fmt(n)} de ${fmt(q)}</b> fardos pedidos nesta carga.</p><p><b>Este fardo não foi contado.</b> Retire-o do caminhão.</p>`,[["Retirei o fardo — continuar",unlock]]);return}
+  c.lidos.push({p:F.p,n:F.n,l:F.lote,t:nowISO()});saveState();ui.lastLote=F.lote;
+  if(completa(c)){ui.flash={c:"done",t:"✓ CARGA COMPLETA"};beep(1500,160,4);vib([150,80,150,80,150])}
+  else if(n+1===q){ui.flash={c:"ok",t:`✓ P${F.p} ${g3(F.n)} · LOTE ${F.lote} COMPLETO (${fmt(q)})`};sLote()}
+  else{ui.flash={c:"ok",t:`✓ P${F.p} ${g3(F.n)} · lote ${F.lote} · ${fmt(n+1)}/${fmt(q)}`};sOk()}
+  render()}
+
+// ---------- tela travada (alerta) e folhas ----------
+function lockScreen(kind,html,btns){ui.lock=kind;const d=document.createElement("div");d.className="lock "+kind;d.id="lock";d.innerHTML=html+btns.map((b,i)=>`<button class="btn" type="button" data-b="${i}">${esc(b[0])}</button>`).join("");document.body.appendChild(d);
+  d.querySelectorAll("[data-b]").forEach(b=>b.onclick=()=>btns[+b.dataset.b][1]());const rep=setInterval(()=>{if(!ui.lock){clearInterval(rep);return}vib(200)},2500)}
+function unlock(){ui.lock=null;const d=$("#lock");if(d)d.remove();const i=$("#scan");if(i){i.value="";_pv=""}ui.flash={c:"idle",t:"Aguardando leitura…"};render();focusScan()}
+function showSheet(html,init){closeSheet(true);{const i=$("#scan");if(i)i.blur()}
+  const o=document.createElement("div");o.className="ovl";o.innerHTML=`<div class="sheet">${html}</div>`;document.body.appendChild(o);
+  o.onclick=e=>{if(e.target===o||e.target.hasAttribute("data-x"))closeSheet()};if(init)init(o)}
+function closeSheet(keep){document.querySelectorAll(".ovl").forEach(o=>o.remove());if(!keep)focusScan()}
+
+// ---------- menu ----------
+$("#bMenu").onclick=()=>{const pend=S.cargas.filter(c=>c.status==="fechada"&&!c.exp).length;showSheet(`<h3>Menu</h3>
+  <button class="btn big" type="button" id="mCg" style="margin-bottom:8px">🚚 Cargas no aparelho${pend?` (${pend} pendente${pend>1?"s":""})`:""}</button>
+  <button class="btn big" type="button" id="mExp" style="margin-bottom:8px">⤓ Exportar cargas</button>
+  <button class="btn big" type="button" id="mPac" style="margin-bottom:8px">📂 Carregar pacote novo</button>
+  <button class="btn big" type="button" id="mDisp" style="margin-bottom:8px">✎ Nome deste aparelho (${esc(S.disp||"não definido")})</button>
+  <button class="btn big" type="button" id="mLimpa" style="margin-bottom:8px">🗑 Apagar cargas já exportadas</button>
+  <p class="hint">${PAC?`Pacote: ${fmt((PAC.ordens||[]).length)} ordens · ${fmt(nFard(PAC))} fardos · gerado em ${dtf(PAC.gerado)}`:"Sem pacote."} · versão ${VER}</p>
+  <button class="btn big" type="button" data-x>Fechar</button>`,o=>{
+  $("#mPac").onclick=()=>{closeSheet();$("#fPac").click()};
+  $("#mCg").onclick=()=>{closeSheet();openCargas()};
+  $("#mExp").onclick=()=>{closeSheet();exportar()};
+  $("#mDisp").onclick=()=>{const v=prompt("Nome deste aparelho (ex.: Coletor balança):",S.disp||"");if(v!=null){S.disp=v.trim();saveState();closeSheet();render()}};
+  $("#mLimpa").onclick=()=>{const n=S.cargas.filter(c=>c.exp).length;if(!n){toast("Nenhuma carga exportada para apagar.");return}
+    if(confirm(`Apagar ${n} carga(s) já exportada(s) deste aparelho? Faça isso só depois de importar o arquivo no app principal.`)){S.cargas=S.cargas.filter(c=>!c.exp);if(!cur())S.atual=null;saveState();closeSheet();render()}}})};
+function openCargas(){const L=S.cargas.slice().sort((a,b)=>String(b.fim||b.inicio).localeCompare(String(a.fim||a.inicio)));
+  showSheet(`<h3>Cargas no aparelho</h3>${L.length?`<ul class="lst">${L.map(c=>`<li><div>${placaHTML(c.placa,true)}</div><div style="flex:1;min-width:0"><b>Ordem ${esc(c.ordem)}</b><br><small class="muted">${fmt(c.lidos.length)}/${fmt(totPed(c))} fardos · ${dtf(c.fim||c.inicio)}${c.parcial?" · parcial":""}</small></div>
+    <span class="r">${c.status==="carregando"?`<span class="tag warn">em carregamento</span><br><button class="btn" type="button" data-cont="${c.id}" style="padding:6px 10px;font-size:14px;margin-top:4px">Continuar</button>`:c.exp?`<span class="tag ok">exportada</span>`:`<span class="tag blue">fechada · pendente</span>`}</span></li>`).join("")}</ul>`:`<p class="muted">Nenhuma carga neste aparelho.</p>`}
+    ${L.some(c=>c.status==="fechada")?`<button class="btn pri big" type="button" id="cgExp" style="margin-top:10px">⤓ Exportar cargas</button>`:""}<button class="btn big" type="button" data-x style="margin-top:8px">Fechar</button>`,o=>{
+    o.querySelectorAll("[data-cont]").forEach(b=>b.onclick=()=>{S.atual=b.dataset.cont;ui.flash=null;saveState();closeSheet();render()});
+    const e=o.querySelector("#cgExp");if(e)e.onclick=()=>{closeSheet();exportar()}})}
+
+// ---------- pacote ----------
+$("#fPac").onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value="";if(!f)return;
+  try{const j=JSON.parse(await f.text());if(j.tipo!=="rsp-coletor-pacote")throw 0;
+    if(!Array.isArray(j.ordens)){toast("Este pacote não tem ordens de carregamento: gere um pacote novo no app principal (aba Carregamento).",5000)}
+    PAC=j;IX=buildIndex(j);await DB.set("pacote",j);
+    // cargas exportadas que o app principal já registrou (estão no pacote novo) saem do aparelho
+    let rm=0;S.cargas=S.cargas.filter(c=>{if(c.exp&&c.lidos.length&&c.lidos.every(x=>IX.cexp.has(`${x.p}-${x.n}`))){rm++;return false}return true});
+    if(!cur())S.atual=null;await saveState();
+    ui.view="home";render();toast(`Pacote carregado: ${fmt((j.ordens||[]).length)} ordem(ns) · ${fmt(nFard(j))} fardos${rm?` · ${rm} carga(s) já registradas foram limpas`:""}`,4000)}
+  catch(err){toast("Arquivo inválido: escolha o Pacote para o coletor gerado no app principal.",4000)}};
+
+// ---------- exportar cargas (leituras + fotos) ----------
+function exportar(){const cs=S.cargas.filter(c=>c.status==="fechada");if(!cs.length){toast("Nenhuma carga fechada para exportar.");return}
+  const j={tipo:"rsp-carregamento-leituras",v:1,disp:S.disp||"",app:VER,exportado:nowISO(),pacote:PAC?PAC.gerado:null,
+    cargas:cs.map(c=>({id:c.id,oid:c.oid,ordem:c.ordem,placa:c.placa,cli:c.cli,emissao:c.emissao,itens:c.itens,conf:c.conf,disp:c.disp,inicio:c.inicio,fim:c.fim,parcial:c.parcial,motivo:c.motivo,
+      fotoPlaca:c.fotoPlaca,semFotoPlaca:c.semFotoPlaca,fotoLacre:c.fotoLacre,semFotoLacre:c.semFotoLacre,lidos:c.lidos,alertas:c.alertas,desc:c.desc}))};
+  const d=new Date(),p=n=>String(n).padStart(2,"0"),cl=t=>String(t||"").replace(/[\\/:*?"<>|]+/g," ").replace(/\s+/g," ").trim();
+  const name=`${cl("Cargas do coletor"+(S.disp?` (${S.disp})`:""))} - ${cl(PAC&&PAC.emp)||"Algodoeira"} - ${p(d.getDate())}-${p(d.getMonth()+1)}-${d.getFullYear()} - ${p(d.getHours())}h${p(d.getMinutes())}m${p(d.getSeconds())}s.txt`;
+  const blob=new Blob([JSON.stringify(j)],{type:"text/plain"});let file=null,canSh=false;
+  try{file=new File([blob],name,{type:"text/plain"});canSh=!!(navigator.canShare&&navigator.canShare({files:[file]}))}catch(e){}
+  const done=async(onde)=>{cs.forEach(c=>c.exp=true);await saveState();closeSheet();render();
+    showSheet(`<h3>Cargas exportadas</h3><p>Arquivo <b>${esc(name)}</b> ${onde}.</p><p>No app principal (com internet): <b>Carregamento 🚚 › Importar cargas do coletor</b>.</p><button class="btn pri big" type="button" data-x>OK</button>`)};
+  showSheet(`<h3>Exportar cargas</h3><p>${fmt(cs.length)} carga(s) fechada(s) · ${fmt(cs.reduce((t,c)=>t+c.lidos.length,0))} fardo(s)${cs.some(c=>c.exp)?` · inclui ${cs.filter(c=>c.exp).length} já exportada(s) antes`:""}.</p>
+    ${canSh?`<button class="btn pri big" type="button" id="exDrive" style="margin-bottom:8px">☁ Enviar (Drive, Bluetooth…)</button><p class="hint" style="margin:-2px 0 10px">Abre o "Compartilhar": escolha <b>Drive</b> (Salvar no Drive) ou <b>Bluetooth</b>.</p>`:""}
+    <button class="btn big" type="button" id="exDev" style="margin-bottom:8px">⤓ Salvar no aparelho (Downloads)</button><button class="btn big" type="button" data-x>Cancelar</button>`,o=>{
+    const dr=$("#exDrive");if(dr)dr.onclick=async()=>{try{await navigator.share({files:[file],title:name});await done("enviado pelo Compartilhar")}catch(e){if(!(e&&e.name==="AbortError"))toast("Não foi possível compartilhar. Use Salvar no aparelho.")}};
+    $("#exDev").onclick=async()=>{const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},2000);await done("salvo no aparelho (pasta Downloads)")}})}
+
+// ---------- câmera (leitura da etiqueta pelo celular) ----------
+const ZXW="https://cdn.jsdelivr.net/npm/zxing-wasm@2.2.4/dist/iife/reader/index.js",ZXW_WASM="https://cdn.jsdelivr.net/npm/zxing-wasm@2.2.4/dist/reader/zxing_reader.wasm";
+let zxwP=null;function loadZXW(){if(window.ZXingWASM)return Promise.resolve();if(zxwP)return zxwP;zxwP=new Promise((ok,ko)=>{const s=document.createElement("script");s.src=ZXW;s.onload=()=>{try{const Z=window.ZXingWASM,ov={locateFile:(p,pre)=>/\.wasm$/.test(p)?ZXW_WASM:pre+p};if(Z.prepareZXingModule)Z.prepareZXingModule({overrides:ov});else if(Z.setZXingModuleOverrides)Z.setZXingModuleOverrides(ov)}catch(e){}ok()};s.onerror=()=>{zxwP=null;ko()};document.head.appendChild(s)});return zxwP}
+async function openCam(){
+  const c=document.createElement("div");c.className="cam";c.innerHTML=`<video playsinline muted autoplay></video><div class="tgt"></div><div class="cmsg" id="cMsg">Abrindo a câmera…</div><div class="cbar"><button class="btn big" type="button" id="cClose">Fechar câmera</button></div>`;document.body.appendChild(c);
+  const v=c.querySelector("video"),msg=t=>{const m=$("#cMsg");if(m)m.textContent=t};let stream=null,run=true,last="",lastT=0;
+  const close=()=>{run=false;try{stream&&stream.getTracks().forEach(t=>t.stop())}catch(e){}c.remove();focusScan()};$("#cClose").onclick=close;
+  try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"},width:{ideal:1920},height:{ideal:1080}},audio:false});v.srcObject=stream;await v.play()}
+  catch(e){msg("Não foi possível abrir a câmera. Permita o acesso à câmera para este app nos ajustes.");return}
+  let bd=null;try{if("BarcodeDetector" in window)bd=new BarcodeDetector({formats:["qr_code","code_128","itf","data_matrix"]})}catch(e){bd=null}
+  if(!bd){try{await loadZXW()}catch(e){msg("Leitor não carregado: abra o app uma vez com internet para ele ficar disponível offline.");return}}
+  msg("Aponte para o QR code ou o código de barras");
+  const cv=document.createElement("canvas"),ctx=cv.getContext("2d",{willReadFrequently:true});
+  const tick=async()=>{if(!run)return;
+    if(v.readyState>=2&&!ui.lock&&!$(".ovl")){try{let txt=null;const W=v.videoWidth,H=v.videoHeight;
+      if(bd){const r=await bd.detect(v);const h=(r||[]).find(x=>scanParse(x.rawValue))||(r||[])[0];txt=h&&h.rawValue}
+      else{const sw=Math.round(W*.84),sh=Math.round(H*.5),sx=Math.round((W-sw)/2),sy=Math.round(H*.25),k=Math.min(1,1280/sw);cv.width=Math.round(sw*k);cv.height=Math.round(sh*k);ctx.drawImage(v,sx,sy,sw,sh,0,0,cv.width,cv.height);
+        const rs=await window.ZXingWASM.readBarcodes(ctx.getImageData(0,0,cv.width,cv.height),{tryHarder:true,formats:["QRCode","Code128","ITF","DataMatrix"],maxNumberOfSymbols:1});const h=(rs||[]).find(x=>x.text);txt=h&&h.text}
+      const t=Date.now();if(txt&&!(txt===last&&t-lastT<2500)){last=txt;lastT=t;onRead(txt)}}catch(e){}}
+    setTimeout(tick,bd?120:200)};tick()}
+
+// ---------- início ----------
+(async()=>{
+  try{const p=await DB.get("pacote");if(p){PAC=p;IX=buildIndex(p)}const st=await DB.get("estado");if(st)S={cargas:[],atual:null,disp:"",conf:"",...st}}catch(e){toast("Armazenamento do aparelho indisponível.")}
+  if(navigator.storage&&navigator.storage.persist)try{navigator.storage.persist()}catch(e){}
+  render();focusScan();
+  if("serviceWorker" in navigator)try{await navigator.serviceWorker.register("sw.js")}catch(e){}
+  try{if(navigator.wakeLock){const req=async()=>{try{await navigator.wakeLock.request("screen")}catch(e){}};req();document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")req()})}}catch(e){}
+})();
+</script>
+</body>
+</html>
