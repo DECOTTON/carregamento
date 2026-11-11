@@ -79,7 +79,7 @@ main{padding:12px;max-width:640px;margin:0 auto;padding-bottom:40px}
 .chk{display:flex;gap:10px;align-items:flex-start;padding:12px;border:2px solid var(--line);border-radius:10px;margin-top:10px;font-size:16px;font-weight:600}.chk input{width:24px;height:24px;flex:none;margin:0}
 .chk.on{border-color:var(--ok);background:#E3F4E8}
 .fld{display:block;margin-top:10px}.fld span{display:block;font-size:12px;font-weight:700;color:var(--mut);margin-bottom:3px}
-.fld input,.fld textarea{width:100%;font-size:17px;padding:10px;border:1px solid var(--line);border-radius:10px;color:var(--ink);background:#fff;font-family:inherit}
+.fld input,.fld textarea,.fld select{width:100%;font-size:17px;padding:10px;border:1px solid var(--line);border-radius:10px;color:var(--ink);background:#fff;font-family:inherit}
 .sbad{margin-top:10px;padding:10px;border-radius:8px;background:#FDECEA;color:#8A1C12;font-weight:600}
 .sok{margin-top:10px;padding:10px;border-radius:8px;background:#E3F4E8;color:#14552A;font-weight:600}
 .hide{display:none!important}
@@ -100,7 +100,7 @@ main{padding:12px;max-width:640px;margin:0 auto;padding-bottom:40px}
 // e devolve as cargas (leituras + fotos) em arquivo.
 // A comunicação direta com o ERP (API) entra depois, no lugar do arquivo.
 // ======================================================================
-const VER="1.0.4";
+const VER="1.0.5";
 const $=s=>document.querySelector(s);
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=n=>n==null?"—":Number(n).toLocaleString("pt-BR");
@@ -253,20 +253,24 @@ function cancelarCarga(c){showSheet(`<h3>Cancelar o carregamento?</h3><p>Ordem <
 
 // finalizar: confere o que falta, foto do lacre / carga fechada
 function finalizar(c){const fl=cfgFoto("fl"),falta=c.itens.map(([l,q])=>[l,q,lidosLote(c,l)]).filter(x=>x[2]<x[1]);
-  const st={foto:c.fotoLacre?c.fotoLacre.d:null,motivo:c.motivo||"",sem:c.semFotoLacre||""};
-  const draw=()=>{const ok=(!falta.length||st.motivo.trim())&&(st.foto||fl!=="obrig");
+  const MOT=(PAC&&PAC.carg&&Array.isArray(PAC.carg.motivos)&&PAC.carg.motivos.length)?PAC.carg.motivos:["Caminhão lotado","Fardo não encontrado","Fardo avariado"];
+  const st={foto:c.fotoLacre?c.fotoLacre.d:null,motivo:c.motivo||"",sem:c.semFotoLacre||"",sel:c.motivo?(MOT.includes(c.motivo)?c.motivo:"__o"):"",outro:c.motivo&&!MOT.includes(c.motivo)?c.motivo:""};
+  const motF=()=>st.sel==="__o"?st.outro.trim():st.sel;
+  const draw=()=>{st.motivo=motF();const ok=(!falta.length||st.motivo)&&(st.foto||fl!=="obrig");
     showSheet(`<h3>Finalizar carga · ordem ${esc(c.ordem)}</h3>
       ${falta.length?`<div class="sbad">Faltam fardos:<br>${falta.map(([l,q,n])=>`Lote <b>${esc(l)}</b>: ${fmt(n)} de ${fmt(q)} (faltam ${fmt(q-n)})`).join("<br>")}</div>
-        <label class="fld"><span>Motivo para fechar incompleta (obrigatório)</span><input id="fMot" value="${esc(st.motivo)}" placeholder="ex.: caminhão lotado, fardo não encontrado"></label>`:`<div class="sok">✓ Todos os lotes com a quantidade pedida (${fmt(c.lidos.length)} fardos).</div>`}
+        <label class="fld"><span>Motivo para fechar incompleta (obrigatório)</span><select id="fMot"><option value=""${st.sel?"":" selected"}>Escolha o motivo…</option>${MOT.map(m=>`<option${st.sel===m?" selected":""}>${esc(m)}</option>`).join("")}<option value="__o"${st.sel==="__o"?" selected":""}>Outro (descrever)</option></select></label>
+        ${st.sel==="__o"?`<label class="fld"><span>Descreva o motivo</span><input id="fOut" value="${esc(st.outro)}" maxlength="80"></label>`:""}`:`<div class="sok">✓ Todos os lotes com a quantidade pedida (${fmt(c.lidos.length)} fardos).</div>`}
       ${fl==="nao"?"":`<p style="margin:12px 0 0;font-weight:700">Foto da carga fechada / lacre${fl==="obrig"?" (obrigatória)":""}</p>
       <div class="foto">${st.foto?`<img src="${st.foto}" alt="">`:`<img alt="">`}<div class="fi"><button class="btn ${st.foto?"":"pri"}" type="button" id="fFt" style="width:100%">${st.foto?"↺ Tirar de novo":"📷 Tirar foto"}</button></div></div>
       ${fl==="rec"&&!st.foto?`<label class="fld"><span>Sem foto? Motivo (opcional)</span><input id="fSem" value="${esc(st.sem)}"></label>`:""}`}
       <button class="btn pri big" type="button" id="fOk" style="margin-top:14px"${ok?"":" disabled"}>✓ Fechar carga</button>
       <button class="btn big" type="button" data-x style="margin-top:8px">Voltar ao carregamento</button>`,o=>{
-      const m=o.querySelector("#fMot");if(m)m.oninput=()=>{st.motivo=m.value;o.querySelector("#fOk").disabled=!(st.motivo.trim()&&(st.foto||fl!=="obrig"))};
+      const m=o.querySelector("#fMot");if(m)m.onchange=()=>{st.sel=m.value;draw();const f=document.querySelector("#fOut");if(f)f.focus()};
+      const ou=o.querySelector("#fOut");if(ou)ou.oninput=()=>{st.outro=ou.value;st.motivo=motF();o.querySelector("#fOk").disabled=!(st.motivo&&(st.foto||fl!=="obrig"))};
       const s=o.querySelector("#fSem");if(s)s.oninput=()=>{st.sem=s.value};
       const ft=o.querySelector("#fFt");if(ft)ft.onclick=()=>tirarFoto(d=>{st.foto=d;draw()});
-      o.querySelector("#fOk").onclick=()=>{if(falta.length&&!st.motivo.trim())return;if(fl==="obrig"&&!st.foto)return;
+      o.querySelector("#fOk").onclick=()=>{st.motivo=motF();if(falta.length&&!st.motivo)return;if(fl==="obrig"&&!st.foto)return;
         c.fotoLacre=st.foto?{d:st.foto,t:nowISO()}:null;c.semFotoLacre=st.foto?"":st.sem.trim();c.parcial=!!falta.length;c.motivo=falta.length?st.motivo.trim():"";
         c.fim=nowISO();c.status="fechada";c.exp=false;S.atual=null;ui.flash=null;saveState();closeSheet();render();
         showSheet(`<h3>Carga fechada ✓</h3><p>Ordem <b>${esc(c.ordem)}</b> · placa <b>${esc(placaFmt(c.placa))}</b> · ${fmt(c.lidos.length)} fardos${c.parcial?" (parcial)":""}.</p><p>Exporte as cargas e importe no app principal para dar a baixa nos lotes.</p><button class="btn pri big" type="button" id="kExp" style="margin-bottom:8px">⤓ Exportar agora</button><button class="btn big" type="button" data-x>Depois</button>`,o2=>{o2.querySelector("#kExp").onclick=()=>{closeSheet();exportar()}})}})};
