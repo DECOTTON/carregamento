@@ -64,6 +64,7 @@ main{padding:12px;max-width:640px;margin:0 auto;padding-bottom:40px}
 .placa i{display:block;background:#123E99;color:#fff;font:700 10px/1.6 system-ui,sans-serif;letter-spacing:.12em;text-align:center;font-style:normal}
 .placa b{display:block;font:900 40px/1.1 ui-monospace,Menlo,monospace;letter-spacing:.06em;text-align:center;padding:2px 12px 4px;color:#0F1B1A}
 .placa.sm{min-width:0}.placa.sm b{font-size:24px;padding:0 8px 2px}.placa.sm i{font-size:8px}
+.osrch{position:relative;margin:0 0 10px}.osrch input{width:100%;font:700 18px/1.2 system-ui,sans-serif;padding:12px 44px 12px 12px;border:2px solid var(--line);border-radius:10px;text-transform:uppercase}.osrch input::placeholder{text-transform:none;font-weight:500}.osrch input:focus{outline:none;border-color:var(--acc)}.osrch button{position:absolute;right:4px;top:50%;transform:translateY(-50%);border:0;background:none;font-size:20px;padding:8px 10px;color:var(--mut)}
 .ord{display:block;width:100%;text-align:left;border:1px solid var(--line);border-left:6px solid var(--acc);border-radius:12px;background:#fff;padding:12px;margin-bottom:10px;color:var(--ink)}
 .ord .oh{display:flex;align-items:center;gap:12px}.ord .oi{flex:1;min-width:0}.ord .on{font:800 20px/1.1 system-ui,sans-serif}.ord .os{font-size:14px;color:var(--mut);margin-top:2px}
 .ord .olst{margin-top:8px;border-top:1px solid var(--line)}.ord .olst>div{display:flex;justify-content:space-between;align-items:baseline;padding:5px 2px;border-bottom:1px solid var(--line);font-size:16px}
@@ -100,7 +101,7 @@ main{padding:12px;max-width:640px;margin:0 auto;padding-bottom:40px}
 // e devolve as cargas (leituras + fotos) em arquivo.
 // A comunicação direta com o ERP (API) entra depois, no lugar do arquivo.
 // ======================================================================
-const VER="1.0.5";
+const VER="1.0.6";
 const $=s=>document.querySelector(s);
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=n=>n==null?"—":Number(n).toLocaleString("pt-BR");
@@ -122,7 +123,7 @@ const DB={db:null,
 let PAC=null;          // pacote cru
 let IX=null;           // índices do pacote
 let S={cargas:[],atual:null,disp:"",conf:""};  // cargas deste aparelho (persistidas)
-let ui={view:"home",oid:null,lock:null,flash:null,prep:null};
+let ui={view:"home",oid:null,lock:null,flash:null,prep:null,q:""};
 async function saveState(){try{await DB.set("estado",S)}catch(e){toast("Não foi possível salvar no aparelho!")}}
 
 function buildIndex(P){
@@ -192,12 +193,18 @@ function renderHome(a){
   const pend=S.cargas.filter(c=>c.status==="fechada"&&!c.exp).length;
   a.innerHTML=`${pend?`<div class="card" style="border-color:#F2C230;background:#FFFBEA"><b>${pend} carga(s) fechada(s) aguardando envio.</b><p class="hint" style="margin:4px 0 8px">Exporte e importe no app principal para dar a baixa nos lotes.</p><button class="btn pri big" type="button" id="bExp">⤓ Exportar cargas (${pend})</button></div>`:""}
     <div class="card"><h2>Ordens de carregamento (${fmt(ords.length)})</h2>
+    ${ords.length>1?`<div class="osrch"><input id="oQ" type="text" enterkeyhint="search" placeholder="🔍 Buscar por placa ou nº da ordem" autocomplete="off" autocapitalize="characters" spellcheck="false" value="${esc(ui.q||"")}"><button type="button" id="oQx" class="${ui.q?"":"hide"}" aria-label="Limpar">✕</button></div><p class="muted hide" id="oQn" style="margin:0 0 10px">Nenhuma ordem com essa placa ou número.</p>`:""}
     ${ords.length?ords.map(o=>{const c=cargaDaOrdem(o.id),tp=o.itens.reduce((t,x)=>t+(+x[1]||0),0),run=c&&c.status==="carregando";
-      return`<button class="ord${run?" run":""}" type="button" data-o="${esc(o.id)}"><div class="oh">${placaHTML(o.placa,true)}<div class="oi"><div class="on">Ordem ${esc(o.ordem)}</div><div class="os">${esc(o.cli||"—")}${o.emissao?` · ${esc(o.emissao)}`:""}</div></div></div>
+      return`<button class="ord${run?" run":""}" type="button" data-o="${esc(o.id)}" data-k="${esc(normQ(o.placa)+" "+normQ(o.ordem))}"><div class="oh">${placaHTML(o.placa,true)}<div class="oi"><div class="on">Ordem ${esc(o.ordem)}</div><div class="os">${esc(o.cli||"—")}${o.emissao?` · ${esc(o.emissao)}`:""}</div></div></div>
         <div class="olst">${o.itens.map(x=>{const n=c?c.lidos.filter(y=>y.l===String(x[0])).length:0;return`<div><span class="olt">Lote <b>${esc(x[0])}</b></span><span class="olq">${run?`${fmt(n)} / `:""}${fmt(x[1])} fd</span></div>`}).join("")}
         <div class="oltot"><span>${fmt(o.itens.length)} lote(s)</span><span>${run?`${fmt(c.lidos.length)} / `:""}${fmt(tp)} fd</span></div></div>${run?`<span class="tag warn">em carregamento</span>`:""}</button>`}).join(""):`<p class="muted" style="margin:0">Nenhuma ordem aberta no pacote. Cadastre ou importe as ordens no app principal e baixe um pacote novo.</p>`}
     </div>`;
-  wire();a.querySelectorAll("[data-o]").forEach(b=>b.onclick=()=>{const c=cargaDaOrdem(b.dataset.o);if(c&&c.status==="carregando"){S.atual=c.id;ui.flash=null;saveState();render();return}ui.view="ord";ui.oid=b.dataset.o;ui.prep=null;render();scrollTo(0,0)})}
+  wire();a.querySelectorAll("[data-o]").forEach(b=>b.onclick=()=>{const c=cargaDaOrdem(b.dataset.o);if(c&&c.status==="carregando"){S.atual=c.id;ui.flash=null;saveState();render();return}ui.view="ord";ui.oid=b.dataset.o;ui.prep=null;render();scrollTo(0,0)});
+  // busca por placa ou nº da ordem (filtra na hora, sem redesenhar a tela)
+  const q=$("#oQ");if(q){const bs=[...a.querySelectorAll("[data-o]")],x=$("#oQx"),nn=$("#oQn");
+    const flt=()=>{ui.q=q.value;const t=normQ(q.value);let v=0;for(const b of bs){const ok=!t||b.dataset.k.split(" ").some(k=>k.includes(t));b.classList.toggle("hide",!ok);if(ok)v++}x.classList.toggle("hide",!q.value);nn.classList.toggle("hide",v>0);return bs.filter(b=>!b.classList.contains("hide"))};
+    q.oninput=flt;q.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();const vs=flt();if(vs.length===1)vs[0].click()}};x.onclick=()=>{q.value="";flt();q.focus()};flt()}}
+const normQ=v=>String(v||"").toUpperCase().replace(/[^0-9A-Z]/g,"");
 
 // ordem escolhida: confere a placa (foto) e inicia
 function renderOrdem(a){const o=ordemDe(ui.oid);if(!o){ui.view="home";render();return}
