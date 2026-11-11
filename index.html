@@ -50,6 +50,10 @@ main{padding:12px;max-width:640px;margin:0 auto;padding-bottom:40px}
 .cam video{flex:1;width:100%;object-fit:cover}
 .cam .cbar{display:flex;gap:8px;padding:10px;padding-bottom:max(10px,env(safe-area-inset-bottom));background:#111}
 .cam .tgt{position:absolute;left:8%;right:8%;top:30%;height:26%;border:3px solid rgba(255,255,255,.85);border-radius:12px;pointer-events:none}
+.cam .vw{position:relative;flex:1;min-height:0;overflow:hidden}.cam .vw video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.cam .pfr{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.cam .pbox{width:92%;aspect-ratio:4/3;border:3px solid #F2C230;border-radius:10px;box-shadow:0 0 0 9999px rgba(0,0,0,.55);position:relative}
+.cam .pbox span{position:absolute;top:-26px;left:0;right:0;text-align:center;color:#F2C230;font-weight:800;font-size:14px}
 .cam .cmsg{position:absolute;left:0;right:0;top:12px;text-align:center;color:#fff;font-weight:700;text-shadow:0 1px 3px #000}
 .toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#1D2E2C;color:#fff;padding:10px 16px;border-radius:10px;z-index:60;font-weight:600;max-width:90vw;text-align:center}
 .tag{font-size:12px;font-weight:700;border-radius:5px;padding:1px 6px}.tag.ok{background:#DDF3E3;color:#14552A}.tag.warn{background:var(--warnbg);color:#6B4100}.tag.blue{background:#E1ECF7;color:#123E66}
@@ -70,7 +74,7 @@ main{padding:12px;max-width:640px;margin:0 auto;padding-bottom:40px}
 .itab .bar{height:8px;margin-top:5px}
 .bar{height:14px;background:#DDE3E1;border-radius:7px;overflow:hidden}.bar i{display:block;height:100%;background:var(--ok);transition:width .2s}
 .cnt{font:900 58px/1 system-ui,sans-serif;text-align:center;margin:6px 0 2px}.cnt small{font-size:26px;color:var(--mut);font-weight:800}
-.foto{display:flex;gap:10px;align-items:center;margin-top:8px}.foto img{width:120px;height:90px;object-fit:cover;border-radius:8px;border:1px solid var(--line);background:#EEF1F0}
+.foto{display:flex;gap:10px;align-items:center;margin-top:8px}.foto img{width:128px;height:96px;object-fit:cover;border-radius:8px;border:1px solid var(--line);background:#EEF1F0}
 .foto .fi{flex:1;font-size:14px}
 .chk{display:flex;gap:10px;align-items:flex-start;padding:12px;border:2px solid var(--line);border-radius:10px;margin-top:10px;font-size:16px;font-weight:600}.chk input{width:24px;height:24px;flex:none;margin:0}
 .chk.on{border-color:var(--ok);background:#E3F4E8}
@@ -96,7 +100,7 @@ main{padding:12px;max-width:640px;margin:0 auto;padding-bottom:40px}
 // e devolve as cargas (leituras + fotos) em arquivo.
 // A comunicação direta com o ERP (API) entra depois, no lugar do arquivo.
 // ======================================================================
-const VER="1.0.1";
+const VER="1.0.2";
 const $=s=>document.querySelector(s);
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=n=>n==null?"—":Number(n).toLocaleString("pt-BR");
@@ -263,11 +267,28 @@ function finalizar(c){const fl=cfgFoto("fl"),falta=c.itens.map(([l,q])=>[l,q,lid
 
 // ---------- foto (câmera do aparelho) reduzida para ~1280 px JPEG ----------
 let _fotoCb=null;
-function tirarFoto(cb){_fotoCb=cb;const i=$("#fFoto");i.value="";i.click()}
+// câmera do app com moldura PAISAGEM (4:3): o celular fica em pé e a foto já sai deitada, no formato do romaneio
+async function tirarFoto(cb){
+  const fb=()=>{_fotoCb=cb;const i=$("#fFoto");i.value="";i.click()};
+  if(!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)){fb();return}
+  const c=document.createElement("div");c.className="cam";c.innerHTML=`<div class="vw"><video playsinline muted autoplay></video><div class="pfr"><div class="pbox"><span>Enquadre aqui</span></div></div></div><div class="cmsg" id="pMsg">Abrindo a câmera…</div>
+    <div class="cbar"><button class="btn big" type="button" id="pX" style="flex:1">Cancelar</button><button class="btn pri big" type="button" id="pOk" style="flex:2" disabled>📷 Tirar foto</button></div>`;document.body.appendChild(c);
+  const v=c.querySelector("video");let st=null;const close=()=>{try{st&&st.getTracks().forEach(t=>t.stop())}catch(e){}c.remove()};
+  $("#pX").onclick=()=>{close();focusScan()};
+  try{st=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"},width:{ideal:1920},height:{ideal:1080}},audio:false});v.srcObject=st;await v.play()}
+  catch(e){close();fb();return}
+  $("#pMsg").textContent="Deixe a placa (ou a carga) dentro da moldura";$("#pOk").disabled=false;
+  $("#pOk").onclick=()=>{try{const vw=v.clientWidth,vh=v.clientHeight,W=v.videoWidth,H=v.videoHeight,k=Math.max(vw/W,vh/H),ox=(vw-W*k)/2,oy=(vh-H*k)/2;
+      const b=c.querySelector(".pbox").getBoundingClientRect(),r=v.getBoundingClientRect();
+      let sx=(b.left-r.left-ox)/k,sy=(b.top-r.top-oy)/k,sw=b.width/k,sh=b.height/k;sx=Math.max(0,sx);sy=Math.max(0,sy);sw=Math.min(W-sx,sw);sh=Math.min(H-sy,sh);
+      const ow=Math.min(1280,Math.round(sw)),oh=Math.round(ow*3/4),cv=document.createElement("canvas");cv.width=ow;cv.height=oh;cv.getContext("2d").drawImage(v,sx,sy,sw,sh,0,0,ow,oh);
+      const d=cv.toDataURL("image/jpeg",.72);close();beep(1000,60);cb(d)}catch(e){close();toast("Não foi possível tirar a foto.")}}}
 $("#fFoto").onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value="";if(!f||!_fotoCb)return;const cb=_fotoCb;_fotoCb=null;
   try{const d=await reduzFoto(f);cb(d)}catch(err){toast("Não foi possível ler a foto.")}};
-function reduzFoto(f){return new Promise((ok,ko)=>{const u=URL.createObjectURL(f),im=new Image();im.onload=()=>{try{const k=Math.min(1,1280/Math.max(im.naturalWidth,im.naturalHeight)),cv=document.createElement("canvas");cv.width=Math.round(im.naturalWidth*k);cv.height=Math.round(im.naturalHeight*k);
-  cv.getContext("2d").drawImage(im,0,0,cv.width,cv.height);URL.revokeObjectURL(u);ok(cv.toDataURL("image/jpeg",.72))}catch(e){ko(e)}};im.onerror=()=>{URL.revokeObjectURL(u);ko()};im.src=u})}
+function reduzFoto(f){return new Promise((ok,ko)=>{const u=URL.createObjectURL(f),im=new Image();im.onload=()=>{try{let sx=0,sy=0,w=im.naturalWidth,h=im.naturalHeight;
+  if(w/h>4/3){const nw=h*4/3;sx=(w-nw)/2;w=nw}else{const nh=w*3/4;sy=(h-nh)/2;h=nh}
+  const k=Math.min(1,1280/w),cv=document.createElement("canvas");cv.width=Math.round(w*k);cv.height=Math.round(h*k);
+  cv.getContext("2d").drawImage(im,sx,sy,w,h,0,0,cv.width,cv.height);URL.revokeObjectURL(u);ok(cv.toDataURL("image/jpeg",.72))}catch(e){ko(e)}};im.onerror=()=>{URL.revokeObjectURL(u);ko()};im.src=u})}
 
 function focusScan(){const i=$("#scan");const c=cur();if(ui.kbOff)return;if(i&&c&&c.status==="carregando"&&!ui.lock&&!$(".ovl")&&!$(".cam")&&document.activeElement!==i){try{i.focus({preventScroll:true})}catch(e){i.focus()}}}
 function wire(){const on=(id,f)=>{const e=$(id);if(e)e.onclick=f};on("#bPac",()=>$("#fPac").click());on("#bExp",exportar)}
