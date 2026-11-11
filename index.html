@@ -64,6 +64,7 @@ main{padding:12px;max-width:640px;margin:0 auto;padding-bottom:40px}
 .placa i{display:block;background:#123E99;color:#fff;font:700 10px/1.6 system-ui,sans-serif;letter-spacing:.12em;text-align:center;font-style:normal}
 .placa b{display:block;font:900 40px/1.1 ui-monospace,Menlo,monospace;letter-spacing:.06em;text-align:center;padding:2px 12px 4px;color:#0F1B1A}
 .placa.sm{min-width:0}.placa.sm b{font-size:24px;padding:0 8px 2px}.placa.sm i{font-size:8px}
+.sec .sech{display:flex;align-items:center;width:100%;background:none;border:0;padding:0;margin:0;text-align:left;cursor:pointer;color:inherit}.sec .sech h2{flex:1;margin:0}.sec .chev{font-size:20px;color:var(--acc);transition:transform .15s;transform:rotate(-90deg)}.sec.open .chev{transform:none}.sec .secb{display:none;margin-top:10px}.sec.open .secb{display:block}.sec.pend{border-color:#F2C230;background:#FFFBEA}
 .osrch{position:relative;margin:0 0 10px}.osrch input{width:100%;font:700 18px/1.2 system-ui,sans-serif;padding:12px 44px 12px 12px;border:2px solid var(--line);border-radius:10px;text-transform:uppercase}.osrch input::placeholder{text-transform:none;font-weight:500}.osrch input:focus{outline:none;border-color:var(--acc)}.osrch button{position:absolute;right:4px;top:50%;transform:translateY(-50%);border:0;background:none;font-size:20px;padding:8px 10px;color:var(--mut)}
 .ord{display:block;width:100%;text-align:left;border:1px solid var(--line);border-left:6px solid var(--acc);border-radius:12px;background:#fff;padding:12px;margin-bottom:10px;color:var(--ink)}
 .ord .oh{display:flex;align-items:center;gap:12px}.ord .oi{flex:1;min-width:0}.ord .on{font:800 20px/1.1 system-ui,sans-serif}.ord .os{font-size:14px;color:var(--mut);margin-top:2px}
@@ -101,7 +102,7 @@ main{padding:12px;max-width:640px;margin:0 auto;padding-bottom:40px}
 // e devolve as cargas (leituras + fotos) em arquivo.
 // A comunicação direta com o ERP (API) entra depois, no lugar do arquivo.
 // ======================================================================
-const VER="1.0.6";
+const VER="1.0.7";
 const $=s=>document.querySelector(s);
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=n=>n==null?"—":Number(n).toLocaleString("pt-BR");
@@ -190,15 +191,19 @@ function render(){
 
 function renderHome(a){
   const ords=(PAC.ordens||[]).filter(o=>{const c=cargaDaOrdem(o.id);return !c||c.status==="carregando"||c.status==="pronta"});
-  const pend=S.cargas.filter(c=>c.status==="fechada"&&!c.exp).length;
-  a.innerHTML=`${pend?`<div class="card" style="border-color:#F2C230;background:#FFFBEA"><b>${pend} carga(s) fechada(s) aguardando envio.</b><p class="hint" style="margin:4px 0 8px">Exporte e importe no app principal para dar a baixa nos lotes.</p><button class="btn pri big" type="button" id="bExp">⤓ Exportar cargas (${pend})</button></div>`:""}
-    <div class="card"><h2>Ordens de carregamento (${fmt(ords.length)})</h2>
-    ${ords.length>1?`<div class="osrch"><input id="oQ" type="text" enterkeyhint="search" placeholder="🔍 Buscar por placa ou nº da ordem" autocomplete="off" autocapitalize="characters" spellcheck="false" value="${esc(ui.q||"")}"><button type="button" id="oQx" class="${ui.q?"":"hide"}" aria-label="Limpar">✕</button></div><p class="muted hide" id="oQn" style="margin:0 0 10px">Nenhuma ordem com essa placa ou número.</p>`:""}
+  const byT=(x,y)=>String(y.fim||y.inicio).localeCompare(String(x.fim||x.inicio)),pends=S.cargas.filter(c=>c.status==="fechada"&&!c.exp).sort(byT),fins=S.cargas.filter(c=>c.status==="fechada"&&c.exp).sort(byT),pend=pends.length;
+  const col=S.col||{},op=k=>col[k]!=null?col[k]:k!=="f";  // aberto por padrão: ordens e pendentes; finalizadas recolhidas
+  const sec=(k,t,n,body,cls="")=>`<div class="card sec${cls}${op(k)?" open":""}"><button type="button" class="sech" data-sec="${k}"><h2>${t} (${fmt(n)})</h2><span class="chev">▾</span></button><div class="secb">${body}</div></div>`;
+  const cgLi=(c,tag)=>`<li><div>${placaHTML(c.placa,true)}</div><div style="flex:1;min-width:0"><b>Ordem ${esc(c.ordem)}</b><br><small class="muted">${fmt(c.lidos.length)}/${fmt(totPed(c))} fardos · ${dtf(c.fim||c.inicio)}${c.parcial?" · parcial":""}</small></div><span class="r">${tag}</span></li>`;
+  a.innerHTML=sec("p","Cargas fechadas aguardando envio",pend,pend?`<ul class="lst">${pends.map(c=>cgLi(c,`<span class="tag blue">pendente</span>`)).join("")}</ul><p class="hint" style="margin:8px 0">Exporte e importe no app principal para dar a baixa nos lotes.</p><button class="btn pri big" type="button" id="bExp">⤓ Exportar cargas (${pend})</button>`:`<p class="muted" style="margin:0">Nenhuma carga aguardando envio.</p>`,pend?" pend":"")+`
+    ${sec("o","Ordens de carregamento",ords.length,`
+    ${ords.length>1?`<div class="osrch"><input id="oQ" type="text" enterkeyhint="search" placeholder="🔍 Placa ou nº da ordem" autocomplete="off" autocapitalize="characters" spellcheck="false" value="${esc(ui.q||"")}"><button type="button" id="oQx" class="${ui.q?"":"hide"}" aria-label="Limpar">✕</button></div><p class="muted hide" id="oQn" style="margin:0 0 10px">Nenhuma ordem com essa placa ou número.</p>`:""}
     ${ords.length?ords.map(o=>{const c=cargaDaOrdem(o.id),tp=o.itens.reduce((t,x)=>t+(+x[1]||0),0),run=c&&c.status==="carregando";
       return`<button class="ord${run?" run":""}" type="button" data-o="${esc(o.id)}" data-k="${esc(normQ(o.placa)+" "+normQ(o.ordem))}"><div class="oh">${placaHTML(o.placa,true)}<div class="oi"><div class="on">Ordem ${esc(o.ordem)}</div><div class="os">${esc(o.cli||"—")}${o.emissao?` · ${esc(o.emissao)}`:""}</div></div></div>
         <div class="olst">${o.itens.map(x=>{const n=c?c.lidos.filter(y=>y.l===String(x[0])).length:0;return`<div><span class="olt">Lote <b>${esc(x[0])}</b></span><span class="olq">${run?`${fmt(n)} / `:""}${fmt(x[1])} fd</span></div>`}).join("")}
-        <div class="oltot"><span>${fmt(o.itens.length)} lote(s)</span><span>${run?`${fmt(c.lidos.length)} / `:""}${fmt(tp)} fd</span></div></div>${run?`<span class="tag warn">em carregamento</span>`:""}</button>`}).join(""):`<p class="muted" style="margin:0">Nenhuma ordem aberta no pacote. Cadastre ou importe as ordens no app principal e baixe um pacote novo.</p>`}
-    </div>`;
+        <div class="oltot"><span>${fmt(o.itens.length)} lote(s)</span><span>${run?`${fmt(c.lidos.length)} / `:""}${fmt(tp)} fd</span></div></div>${run?`<span class="tag warn">em carregamento</span>`:""}</button>`}).join(""):`<p class="muted" style="margin:0">Nenhuma ordem aberta no pacote. Cadastre ou importe as ordens no app principal e baixe um pacote novo.</p>`}`)}
+    ${sec("f","Cargas finalizadas",fins.length,fins.length?`<ul class="lst">${fins.map(c=>cgLi(c,`<span class="tag ok">exportada</span>`)).join("")}</ul><p class="hint" style="margin:8px 0 0">Já exportadas. Depois de importar no app principal, dá para apagá-las em Menu › Apagar cargas já exportadas.</p>`:`<p class="muted" style="margin:0">Nenhuma carga finalizada neste aparelho.</p>`)}`;
+  a.querySelectorAll("[data-sec]").forEach(h=>h.onclick=()=>{const k=h.dataset.sec,cd=h.parentElement,o=!cd.classList.contains("open");cd.classList.toggle("open",o);S.col={...(S.col||{}),[k]:o};saveState()});
   wire();a.querySelectorAll("[data-o]").forEach(b=>b.onclick=()=>{const c=cargaDaOrdem(b.dataset.o);if(c&&c.status==="carregando"){S.atual=c.id;ui.flash=null;saveState();render();return}ui.view="ord";ui.oid=b.dataset.o;ui.prep=null;render();scrollTo(0,0)});
   // busca por placa ou nº da ordem (filtra na hora, sem redesenhar a tela)
   const q=$("#oQ");if(q){const bs=[...a.querySelectorAll("[data-o]")],x=$("#oQx"),nn=$("#oQn");
