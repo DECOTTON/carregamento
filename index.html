@@ -100,7 +100,7 @@ main{padding:12px;max-width:640px;margin:0 auto;padding-bottom:40px}
 // e devolve as cargas (leituras + fotos) em arquivo.
 // A comunicação direta com o ERP (API) entra depois, no lugar do arquivo.
 // ======================================================================
-const VER="1.0.2";
+const VER="1.0.3";
 const $=s=>document.querySelector(s);
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=n=>n==null?"—":Number(n).toLocaleString("pt-BR");
@@ -238,11 +238,18 @@ function renderCarga(a,c){const tp=totPed(c),tl=c.lidos.length,fl=ui.flash||{c:"
     <p class="hint" id="raw">${ui.lastRaw?`Última leitura recebida: ${esc(ui.lastRaw.v)}`:""}</p>
     ${c.alertas.length?`<p class="hint">⚠ ${fmt(c.alertas.length)} leitura(s) recusada(s) (não contadas)</p>`:""}
     <div class="row" style="margin-top:10px"><button class="btn" type="button" id="bUndo"${c.lidos.length?"":" disabled"}>↶ Desfazer última</button><button class="btn" type="button" id="bPausa">⏸ Pausar</button></div>
-    <button class="btn ${done?"pri":""} big" type="button" id="bFim" style="margin-top:8px">🏁 Finalizar carga</button></div>`;
+    <button class="btn ${done?"pri":""} big" type="button" id="bFim" style="margin-top:8px">🏁 Finalizar carga</button>
+    <button class="btn big" type="button" id="bCanc" style="margin-top:8px;color:var(--bad);border-color:#E7B4AF">✕ Cancelar carregamento</button></div>`;
   wire();
   $("#bUndo").onclick=()=>{const x=c.lidos.pop();if(!x)return;saveState();ui.flash={c:"dup",t:`Desfeito: P${x.p} ${g3(x.n)} (lote ${x.l})`};render()};
   $("#bPausa").onclick=()=>{S.atual=null;ui.flash=null;saveState();render();toast("Carga pausada: continue tocando na ordem.")};
-  $("#bFim").onclick=()=>finalizar(c)}
+  $("#bFim").onclick=()=>finalizar(c);$("#bCanc").onclick=()=>cancelarCarga(c)}
+// cancelar: apaga as leituras e as fotos desta carga; a ordem volta para a lista
+function cancelarCarga(c){showSheet(`<h3>Cancelar o carregamento?</h3><p>Ordem <b>${esc(c.ordem)}</b> · placa <b>${esc(placaFmt(c.placa))}</b></p>
+  <div class="sbad">As <b>${fmt(c.lidos.length)} leitura(s)</b> e as <b>fotos</b> desta carga serão apagadas deste aparelho. A ordem volta para a lista para começar de novo.</div>
+  ${c.exp?`<p class="hint">Esta carga já foi exportada: se já foi importada no app principal, exclua-a também lá (Carregamento › Cargas realizadas).</p>`:""}
+  <button class="btn bad big" type="button" id="xOk" style="margin-top:12px">✕ Sim, cancelar e apagar</button><button class="btn big" type="button" data-x style="margin-top:8px">Não, voltar</button>`,o=>{
+  o.querySelector("#xOk").onclick=()=>{S.cargas=S.cargas.filter(z=>z!==c);if(S.atual===c.id)S.atual=null;ui.flash=null;ui.view="home";saveState();closeSheet();render();toast("Carregamento cancelado: leituras e fotos apagadas.")}})}
 
 // finalizar: confere o que falta, foto do lacre / carga fechada
 function finalizar(c){const fl=cfgFoto("fl"),falta=c.itens.map(([l,q])=>[l,q,lidosLote(c,l)]).filter(x=>x[2]<x[1]);
@@ -362,9 +369,10 @@ $("#bMenu").onclick=()=>{const pend=S.cargas.filter(c=>c.status==="fechada"&&!c.
     if(confirm(`Apagar ${n} carga(s) já exportada(s) deste aparelho? Faça isso só depois de importar o arquivo no app principal.`)){S.cargas=S.cargas.filter(c=>!c.exp);if(!cur())S.atual=null;saveState();closeSheet();render()}}})};
 function openCargas(){const L=S.cargas.slice().sort((a,b)=>String(b.fim||b.inicio).localeCompare(String(a.fim||a.inicio)));
   showSheet(`<h3>Cargas no aparelho</h3>${L.length?`<ul class="lst">${L.map(c=>`<li><div>${placaHTML(c.placa,true)}</div><div style="flex:1;min-width:0"><b>Ordem ${esc(c.ordem)}</b><br><small class="muted">${fmt(c.lidos.length)}/${fmt(totPed(c))} fardos · ${dtf(c.fim||c.inicio)}${c.parcial?" · parcial":""}</small></div>
-    <span class="r">${c.status==="carregando"?`<span class="tag warn">em carregamento</span><br><button class="btn" type="button" data-cont="${c.id}" style="padding:6px 10px;font-size:14px;margin-top:4px">Continuar</button>`:c.exp?`<span class="tag ok">exportada</span>`:`<span class="tag blue">fechada · pendente</span>`}</span></li>`).join("")}</ul>`:`<p class="muted">Nenhuma carga neste aparelho.</p>`}
+    <span class="r">${c.status==="carregando"?`<span class="tag warn">em carregamento</span><br><button class="btn" type="button" data-cont="${c.id}" style="padding:6px 10px;font-size:14px;margin-top:4px">Continuar</button>`:c.exp?`<span class="tag ok">exportada</span>`:`<span class="tag blue">fechada · pendente</span>`}<br><button class="btn" type="button" data-canc="${c.id}" style="padding:6px 10px;font-size:14px;margin-top:4px;color:var(--bad)">✕ Cancelar</button></span></li>`).join("")}</ul>`:`<p class="muted">Nenhuma carga neste aparelho.</p>`}
     ${L.some(c=>c.status==="fechada")?`<button class="btn pri big" type="button" id="cgExp" style="margin-top:10px">⤓ Exportar cargas</button>`:""}<button class="btn big" type="button" data-x style="margin-top:8px">Fechar</button>`,o=>{
     o.querySelectorAll("[data-cont]").forEach(b=>b.onclick=()=>{S.atual=b.dataset.cont;ui.flash=null;saveState();closeSheet();render()});
+    o.querySelectorAll("[data-canc]").forEach(b=>b.onclick=()=>{const c=S.cargas.find(z=>z.id===b.dataset.canc);if(c)cancelarCarga(c)});
     const e=o.querySelector("#cgExp");if(e)e.onclick=()=>{closeSheet();exportar()}})}
 
 // ---------- pacote ----------
