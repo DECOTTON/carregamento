@@ -185,7 +185,7 @@ body.mvon{overflow:hidden}
 // e devolve as cargas (leituras + fotos) em arquivo.
 // A comunicação direta com o ERP (API) entra depois, no lugar do arquivo.
 // ======================================================================
-const VER="1.1.11";
+const VER="1.1.12";
 const $=s=>document.querySelector(s);
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=n=>n==null?"—":Number(n).toLocaleString("pt-BR");
@@ -346,7 +346,20 @@ function cancelarCarga(c){showSheet(`<h3>Cancelar o carregamento?</h3><p>Ordem <
   <div class="sbad">As <b>${fmt(c.lidos.length)} leitura(s)</b> e as <b>fotos</b> desta carga serão apagadas deste aparelho. A ordem volta para a lista para começar de novo.</div>
   ${c.exp?`<p class="hint">Esta carga já foi exportada: se já foi importada no app principal, exclua-a também lá (Carregamento › Cargas realizadas).</p>`:""}
   <button class="btn bad big" type="button" id="xOk" style="margin-top:12px">✕ Sim, cancelar e apagar</button><button class="btn big" type="button" data-x style="margin-top:8px">Não, voltar</button>`,o=>{
-  o.querySelector("#xOk").onclick=()=>{S.cargas=S.cargas.filter(z=>z!==c);if(S.atual===c.id)S.atual=null;ui.flash=null;ui.view="home";saveState();closeSheet();render();toast("Carregamento cancelado: leituras e fotos apagadas.")}})}
+  o.querySelector("#xOk").onclick=()=>{if(c.status==="carregando"){apagarCarga(c);return}closeSheet(true);justCanc(c)}})}
+function apagarCarga(c,motivo){
+  if(motivo){S.canc=(S.canc||[]).concat([{ordem:c.ordem,placa:c.placa,lidos:c.lidos.length,ped:totPed(c),fim:c.fim||"",exp:!!c.exp,motivo,em:new Date().toISOString(),disp:S.disp||""}]).slice(-200)}
+  S.cargas=S.cargas.filter(z=>z!==c);if(S.atual===c.id)S.atual=null;ui.flash=null;ui.view="home";saveState();closeSheet();render();toast("Carregamento cancelado: leituras e fotos apagadas.")}
+// carga já finalizada (aguardando envio ou exportada): segunda confirmação, com a justificativa obrigatória
+function justCanc(c){showSheet(`<h3>Justifique o cancelamento</h3><p>Ordem <b>${esc(c.ordem)}</b> · placa <b>${esc(placaFmt(c.placa))}</b> · ${fmt(c.lidos.length)} fardo(s) lidos</p>
+  <div class="sbad">Esta carga já foi <b>finalizada</b>${c.exp?" e exportada":" e está aguardando envio"}. Informe o motivo para confirmar o cancelamento.</div>
+  <label class="fld" style="margin-top:10px">Motivo do cancelamento<textarea id="xMot" rows="3" maxlength="300" placeholder="Ex.: placa errada, carga refeita, ordem cancelada pela balança…"></textarea></label>
+  <small class="muted" id="xMotH">Escreva pelo menos 10 caracteres.</small>
+  <button class="btn bad big" type="button" id="xOk2" style="margin-top:12px" disabled>✕ Confirmar cancelamento</button><button class="btn big" type="button" data-x style="margin-top:8px">Não, voltar</button>`,o=>{
+  const t=o.querySelector("#xMot"),b=o.querySelector("#xOk2"),h=o.querySelector("#xMotH");
+  const up=()=>{const n=t.value.trim().length;b.disabled=n<10;h.textContent=n<10?`Escreva pelo menos 10 caracteres (${n}/10).`:"Pronto para confirmar."};
+  t.oninput=up;setTimeout(()=>t.focus(),50);
+  b.onclick=()=>{const m=t.value.trim();if(m.length<10){up();t.focus();return}apagarCarga(c,m)}})}
 
 // finalizar: confere o que falta, foto do lacre / carga fechada
 function finalizar(c){const fl=cfgFoto("fl"),falta=c.itens.map(([l,q])=>[l,q,lidosLote(c,l)]).filter(x=>x[2]<x[1]);
