@@ -87,7 +87,8 @@ main{padding:12px;max-width:640px;margin:0 auto;padding-bottom:40px}
 .sok{margin-top:10px;padding:10px;border-radius:8px;background:#E3F4E8;color:#14552A;font-weight:600}
 .hide{display:none!important}
 .locb{display:flex;align-items:center;gap:6px;width:100%;margin:5px 0 2px;border:1px solid #B9C7DD;background:#EEF3FA;color:#0F2A55;border-radius:8px;padding:7px 9px;font:800 14px/1.15 system-ui,sans-serif;text-align:left}
-.locb span{margin-left:auto;font-weight:700;font-size:12px;color:var(--acc);white-space:nowrap}.locb.nf{background:#F3F3F3;border-color:var(--line);color:var(--mut);font-weight:600}.locb:disabled{opacity:1}
+.locb i{font-style:normal;flex:none}.locb b{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:800}
+.locb span{flex:none;margin-left:auto;font-weight:700;font-size:12px;color:var(--acc);white-space:nowrap}.locb.nf{background:#F3F3F3;border-color:var(--line);color:var(--mut);font-weight:600}.locb:disabled{opacity:1}
 /* mapa do pátio (mesmo visual do mapa do app principal) */
 body.mvon{overflow:hidden}
 .mapv{position:fixed;inset:0;z-index:30;background:#E6E9E7;display:flex;flex-direction:column;--mfloor:#D5DAD6;--maisle:#E3B53B;--mink:#1D2E2C}
@@ -184,7 +185,7 @@ body.mvon{overflow:hidden}
 // e devolve as cargas (leituras + fotos) em arquivo.
 // A comunicação direta com o ERP (API) entra depois, no lugar do arquivo.
 // ======================================================================
-const VER="1.1.9";
+const VER="1.1.10";
 const $=s=>document.querySelector(s);
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=n=>n==null?"—":Number(n).toLocaleString("pt-BR");
@@ -582,7 +583,7 @@ function mvBoxInfo(k){const B=mvBoxes().get(k),L=mvLotes(),G=PAC.geo.find(g=>g[0
 let _mvBx=null,_mvP=null;
 function mvBoxes(){if(_mvP!==PAC){_mvP=PAC;_mvBx=new Map((PAC.boxes||[]).map(([k,addr,mat,ls])=>[k,{k,addr,mat,ls:ls||[]}]))}return _mvBx}
 // botão "📍 onde está o lote": abre o mapa no box do lote
-const locBtn=c=>{const b=boxesLote(c);return`<button type="button" class="locb${b?"":" nf"}" data-loc="${esc(c)}"${PAC&&PAC.geo&&PAC.geo.length&&b?"":" disabled"}>📍 ${esc(b||"sem box no pacote")}${b&&PAC&&PAC.geo&&PAC.geo.length?" <span>ver no mapa ›</span>":""}</button>`};
+const locBtn=c=>{const b=boxesLote(c);return`<button type="button" class="locb${b?"":" nf"}" data-loc="${esc(c)}"${PAC&&PAC.geo&&PAC.geo.length&&b?"":" disabled"}><i>📍</i><b>${esc(b||"sem box no pacote")}</b>${b&&PAC&&PAC.geo&&PAC.geo.length?"<span>mapa ›</span>":""}</button>`};
 document.addEventListener("click",e=>{const b=e.target.closest("[data-loc]");if(!b||b.disabled)return;e.preventDefault();e.stopPropagation();openMapa({hl:[b.dataset.loc],hlT:`Lote ${b.dataset.loc}`})},true);
 const boxesLote=c=>{if(!PAC)return"";const r=(PAC.lotes||[]).find(x=>String(x[0])===String(c));return r&&r[5]?r[5].map(b=>b[1]).join(", "):""};
 // ---------- menu ----------
