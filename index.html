@@ -86,6 +86,8 @@ main{padding:12px;max-width:640px;margin:0 auto;padding-bottom:40px}
 .sbad{margin-top:10px;padding:10px;border-radius:8px;background:#FDECEA;color:#8A1C12;font-weight:600}
 .sok{margin-top:10px;padding:10px;border-radius:8px;background:#E3F4E8;color:#14552A;font-weight:600}
 .hide{display:none!important}
+.locb{display:flex;align-items:center;gap:6px;width:100%;margin:5px 0 2px;border:1px solid #B9C7DD;background:#EEF3FA;color:#0F2A55;border-radius:8px;padding:7px 9px;font:800 14px/1.15 system-ui,sans-serif;text-align:left}
+.locb span{margin-left:auto;font-weight:700;font-size:12px;color:var(--acc);white-space:nowrap}.locb.nf{background:#F3F3F3;border-color:var(--line);color:var(--mut);font-weight:600}.locb:disabled{opacity:1}
 /* mapa do pátio (mesmo visual do mapa do app principal) */
 body.mvon{overflow:hidden}
 .mapv{position:fixed;inset:0;z-index:30;background:#E6E9E7;display:flex;flex-direction:column;--mfloor:#D5DAD6;--maisle:#E3B53B;--mink:#1D2E2C}
@@ -182,7 +184,7 @@ body.mvon{overflow:hidden}
 // e devolve as cargas (leituras + fotos) em arquivo.
 // A comunicação direta com o ERP (API) entra depois, no lugar do arquivo.
 // ======================================================================
-const VER="1.1.6";
+const VER="1.1.7";
 const $=s=>document.querySelector(s);
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=n=>n==null?"—":Number(n).toLocaleString("pt-BR");
@@ -301,7 +303,7 @@ function renderOrdem(a){const o=ordemDe(ui.oid);if(!o){ui.view="home";render();r
     <div style="text-align:center;margin:6px 0 10px">${placaHTML(o.placa)}</div>
     <p style="margin:0 0 4px"><b>Cliente:</b> ${esc(o.cli||"—")}${o.emissao?` · <b>Emissão:</b> ${esc(o.emissao)}`:""}</p>
     <table class="itab"><thead><tr><th>Lote</th><th>Produtor · box</th><th style="text-align:right">Fardos</th></tr></thead><tbody>
-    ${o.itens.map(x=>`<tr><td class="lt">${esc(x[0])}</td><td>${esc(prodOfLote(String(x[0]))||"—")}<div class="hint" style="margin:2px 0 0">${esc(boxesLote(x[0])||"sem box no pacote")}</div></td><td class="q">${fmt(x[1])}</td></tr>`).join("")}
+    ${o.itens.map(x=>`<tr><td class="lt">${esc(x[0])}</td><td>${esc(prodOfLote(String(x[0]))||"—")}${locBtn(x[0])}</td><td class="q">${fmt(x[1])}</td></tr>`).join("")}
     <tr><td colspan="2"><b>Total</b></td><td class="q">${fmt(tp)}</td></tr></tbody></table>
     ${PAC&&PAC.geo&&PAC.geo.length?`<button class="btn big" type="button" id="bMapO" style="margin-top:10px">🗺 Ver os lotes no mapa</button>`:""}</div>
     <div class="card"><h2>Conferência da placa</h2>
@@ -330,7 +332,7 @@ function renderCarga(a,c){const tp=totPed(c),tl=c.lidos.length,fl=ui.flash||{c:"
     <div class="flash ${done?"done":fl.c}">${done?"✓ CARGA COMPLETA — toque em Finalizar":esc(fl.t)}</div>
     <div class="cnt">${fmt(tl)}<small> / ${fmt(tp)}</small></div><div class="bar"><i style="width:${tp?Math.min(100,tl/tp*100):0}%"></i></div>
     <table class="itab" style="margin-top:10px"><thead><tr><th>Lote</th><th style="text-align:right">Lidos / pedidos</th></tr></thead><tbody>
-    ${c.itens.map(([l,q])=>{const n=lidosLote(c,l);return`<tr class="${n>=q?"ok":l===last?"hl":""}"><td><span class="lt" style="font:900 24px/1 system-ui">${esc(l)}</span><div class="hint" style="margin:2px 0 0">${esc(prodOfLote(l)||"")}</div><div class="bar"><i style="width:${q?Math.min(100,n/q*100):0}%"></i></div></td><td class="q">${fmt(n)}<small> / ${fmt(q)}</small>${n>=q?"<br><span class=\"tag ok\">✓ completo</span>":""}</td></tr>`}).join("")}</tbody></table>
+    ${c.itens.map(([l,q])=>{const n=lidosLote(c,l);return`<tr class="${n>=q?"ok":l===last?"hl":""}"><td><span class="lt" style="font:900 24px/1 system-ui">${esc(l)}</span><div class="hint" style="margin:2px 0 0">${esc(prodOfLote(l)||"")}</div>${n<q?locBtn(l):""}<div class="bar"><i style="width:${q?Math.min(100,n/q*100):0}%"></i></div></td><td class="q">${fmt(n)}<small> / ${fmt(q)}</small>${n>=q?"<br><span class=\"tag ok\">✓ completo</span>":""}</td></tr>`}).join("")}</tbody></table>
     <p class="hint" id="raw">${ui.lastRaw?`Última leitura recebida: ${esc(ui.lastRaw.v)}`:""}</p>
     ${c.alertas.length?`<p class="hint">⚠ ${fmt(c.alertas.length)} leitura(s) recusada(s) (não contadas)</p>`:""}
     <div class="row" style="margin-top:10px"><button class="btn" type="button" id="bUndo"${c.lidos.length?"":" disabled"}>↶ Desfazer última</button><button class="btn" type="button" id="bPausa">⏸ Pausar</button></div>
@@ -583,6 +585,9 @@ function mvBoxInfo(k){const B=mvBoxes().get(k),L=mvLotes(),G=PAC.geo.find(g=>g[0
 // boxes do pacote (o carregamento não muda os boxes)
 let _mvBx=null,_mvP=null;
 function mvBoxes(){if(_mvP!==PAC){_mvP=PAC;_mvBx=new Map((PAC.boxes||[]).map(([k,addr,mat,ls])=>[k,{k,addr,mat,ls:ls||[]}]))}return _mvBx}
+// botão "📍 onde está o lote": abre o mapa no box do lote
+const locBtn=c=>{const b=boxesLote(c);return`<button type="button" class="locb${b?"":" nf"}" data-loc="${esc(c)}"${PAC&&PAC.geo&&PAC.geo.length&&b?"":" disabled"}>📍 ${esc(b||"sem box no pacote")}${b&&PAC&&PAC.geo&&PAC.geo.length?" <span>ver no mapa ›</span>":""}</button>`};
+document.addEventListener("click",e=>{const b=e.target.closest("[data-loc]");if(!b||b.disabled)return;e.preventDefault();e.stopPropagation();openMapa({hl:[b.dataset.loc],hlT:`Lote ${b.dataset.loc}`})},true);
 const boxesLote=c=>{if(!PAC)return"";const r=(PAC.lotes||[]).find(x=>String(x[0])===String(c));return r&&r[5]?r[5].map(b=>b[1]).join(", "):""};
 // ---------- menu ----------
 $("#bMenu").onclick=()=>{const pend=S.cargas.filter(c=>c.status==="fechada"&&!c.exp).length,nE=S.cargas.filter(c=>c.exp).length;showSheet(`<h3>Menu</h3><div class="mnu">
