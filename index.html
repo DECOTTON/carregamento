@@ -184,7 +184,7 @@ body.mvon{overflow:hidden}
 // e devolve as cargas (leituras + fotos) em arquivo.
 // A comunicação direta com o ERP (API) entra depois, no lugar do arquivo.
 // ======================================================================
-const VER="1.1.7";
+const VER="1.1.8";
 const $=s=>document.querySelector(s);
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=n=>n==null?"—":Number(n).toLocaleString("pt-BR");
@@ -304,8 +304,7 @@ function renderOrdem(a){const o=ordemDe(ui.oid);if(!o){ui.view="home";render();r
     <p style="margin:0 0 4px"><b>Cliente:</b> ${esc(o.cli||"—")}${o.emissao?` · <b>Emissão:</b> ${esc(o.emissao)}`:""}</p>
     <table class="itab"><thead><tr><th>Lote</th><th>Produtor · box</th><th style="text-align:right">Fardos</th></tr></thead><tbody>
     ${o.itens.map(x=>`<tr><td class="lt">${esc(x[0])}</td><td>${esc(prodOfLote(String(x[0]))||"—")}${locBtn(x[0])}</td><td class="q">${fmt(x[1])}</td></tr>`).join("")}
-    <tr><td colspan="2"><b>Total</b></td><td class="q">${fmt(tp)}</td></tr></tbody></table>
-    ${PAC&&PAC.geo&&PAC.geo.length?`<button class="btn big" type="button" id="bMapO" style="margin-top:10px">🗺 Ver os lotes no mapa</button>`:""}</div>
+    <tr><td colspan="2"><b>Total</b></td><td class="q">${fmt(tp)}</td></tr></tbody></table></div>
     <div class="card"><h2>Conferência da placa</h2>
     ${fp==="nao"?"":`<div class="foto">${P.foto?`<img src="${P.foto}" alt="Foto da placa">`:`<img alt="">`}<div class="fi">${P.foto?`<span class="tag ok">✓ foto tirada</span><br><button class="btn" type="button" id="bFoto" style="margin-top:6px;padding:8px 12px">↺ Tirar de novo</button>`:`<button class="btn ${fp==="obrig"?"pri":""}" type="button" id="bFoto" style="width:100%">📷 Foto da placa${fp==="obrig"?" (obrigatória)":""}</button>`}</div></div>`}
     ${fp==="rec"&&!P.foto?`<label class="fld"><span>Sem foto? Informe o motivo (opcional)</span><input id="iSem" value="${esc(P.semFoto)}" placeholder="ex.: câmera com defeito"></label>`:""}
@@ -314,7 +313,6 @@ function renderOrdem(a){const o=ordemDe(ui.oid);if(!o){ui.view="home";render();r
     <button class="btn pri big" type="button" id="bIni" style="margin-top:12px"${pode?"":" disabled"}>▶ Iniciar carregamento</button>
     ${!pode?`<p class="hint">${!P.ok?"Confira a placa e marque a caixa.":fp==="obrig"&&!P.foto?"Tire a foto da placa para iniciar.":"Informe o conferente."}</p>`:""}</div>`;
   $("#bVolta").onclick=()=>{ui.view="home";ui.oid=null;ui.prep=null;render()};
-  const bm=$("#bMapO");if(bm)bm.onclick=()=>openMapa({hl:o.itens.map(x=>x[0]),hlT:`Lotes da ordem ${o.ordem}`});
   const bf=$("#bFoto");if(bf)bf.onclick=()=>tirarFoto(d=>{P.foto=d;render()});
   $("#cOk").onchange=e=>{P.ok=e.target.checked;render()};
   const ic=$("#iConf");ic.oninput=()=>{P.conf=ic.value;const b=$("#bIni");if(b)b.disabled=!(P.ok&&P.conf.trim()&&(P.foto||fp!=="obrig"))};ic.onchange=()=>render();
@@ -336,14 +334,12 @@ function renderCarga(a,c){const tp=totPed(c),tl=c.lidos.length,fl=ui.flash||{c:"
     <p class="hint" id="raw">${ui.lastRaw?`Última leitura recebida: ${esc(ui.lastRaw.v)}`:""}</p>
     ${c.alertas.length?`<p class="hint">⚠ ${fmt(c.alertas.length)} leitura(s) recusada(s) (não contadas)</p>`:""}
     <div class="row" style="margin-top:10px"><button class="btn" type="button" id="bUndo"${c.lidos.length?"":" disabled"}>↶ Desfazer última</button><button class="btn" type="button" id="bPausa">⏸ Pausar</button></div>
-    ${PAC&&PAC.geo&&PAC.geo.length?`<button class="btn big" type="button" id="bMapC" style="margin-top:8px">🗺 Ver os lotes no mapa</button>`:""}
     <button class="btn ${done?"pri":""} big" type="button" id="bFim" style="margin-top:8px">🏁 Finalizar carga</button>
     <button class="btn big" type="button" id="bCanc" style="margin-top:8px;color:var(--bad);border-color:#E7B4AF">✕ Cancelar carregamento</button></div>`;
   wire();
   $("#bUndo").onclick=()=>{const x=c.lidos.pop();if(!x)return;saveState();ui.flash={c:"dup",t:`Desfeito: P${x.p} ${g3(x.n)} (lote ${x.l})`};render()};
   $("#bPausa").onclick=()=>{S.atual=null;ui.flash=null;saveState();render();toast("Carga pausada: continue tocando na ordem.")};
-  $("#bFim").onclick=()=>finalizar(c);$("#bCanc").onclick=()=>cancelarCarga(c);
-  const bm=$("#bMapC");if(bm)bm.onclick=()=>openMapa({hl:c.itens.filter(([l,q])=>lidosLote(c,l)<q).map(x=>x[0]),hlT:`Lotes que faltam carregar`})}
+  $("#bFim").onclick=()=>finalizar(c);$("#bCanc").onclick=()=>cancelarCarga(c)}
 // cancelar: apaga as leituras e as fotos desta carga; a ordem volta para a lista
 function cancelarCarga(c){showSheet(`<h3>Cancelar o carregamento?</h3><p>Ordem <b>${esc(c.ordem)}</b> · placa <b>${esc(placaFmt(c.placa))}</b></p>
   <div class="sbad">As <b>${fmt(c.lidos.length)} leitura(s)</b> e as <b>fotos</b> desta carga serão apagadas deste aparelho. A ordem volta para a lista para começar de novo.</div>
