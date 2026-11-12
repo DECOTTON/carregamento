@@ -185,7 +185,7 @@ body.mvon{overflow:hidden}
 // e devolve as cargas (leituras + fotos) em arquivo.
 // A comunicação direta com o ERP (API) entra depois, no lugar do arquivo.
 // ======================================================================
-const VER="1.1.10";
+const VER="1.1.11";
 const $=s=>document.querySelector(s);
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=n=>n==null?"—":Number(n).toLocaleString("pt-BR");
@@ -331,7 +331,7 @@ function renderCarga(a,c){const tp=totPed(c),tl=c.lidos.length,fl=ui.flash||{c:"
     <div class="flash ${done?"done":fl.c}">${done?"✓ CARGA COMPLETA — toque em Finalizar":esc(fl.t)}</div>
     <div class="cnt">${fmt(tl)}<small> / ${fmt(tp)}</small></div><div class="bar"><i style="width:${tp?Math.min(100,tl/tp*100):0}%"></i></div>
     <table class="itab" style="margin-top:10px"><thead><tr><th>Lote</th><th style="text-align:right">Lidos / pedidos</th></tr></thead><tbody>
-    ${c.itens.map(([l,q])=>{const n=lidosLote(c,l);return`<tr class="${n>=q?"ok":l===last?"hl":""}"><td><span class="lt" style="font:900 24px/1 system-ui">${esc(l)}</span><div class="hint" style="margin:2px 0 0">${esc(prodOfLote(l)||"")}</div>${n<q?locBtn(l):""}<div class="bar"><i style="width:${q?Math.min(100,n/q*100):0}%"></i></div></td><td class="q">${fmt(n)}<small> / ${fmt(q)}</small>${n>=q?"<br><span class=\"tag ok\">✓ completo</span>":""}</td></tr>`}).join("")}</tbody></table>
+    ${c.itens.map(([l,q])=>{const n=lidosLote(c,l);return`<tr class="${n>=q?"ok":l===last?"hl":""}"><td><span class="lt" style="font:900 24px/1 system-ui">${esc(l)}</span><div class="hint" style="margin:2px 0 0">${esc(prodOfLote(l)||"")}</div>${n?"":locBtn(l)}<div class="bar"><i style="width:${q?Math.min(100,n/q*100):0}%"></i></div></td><td class="q">${fmt(n)}<small> / ${fmt(q)}</small>${n>=q?"<br><span class=\"tag ok\">✓ completo</span>":""}</td></tr>`}).join("")}</tbody></table>
     <p class="hint" id="raw">${ui.lastRaw?`Última leitura recebida: ${esc(ui.lastRaw.v)}`:""}</p>
     ${c.alertas.length?`<p class="hint">⚠ ${fmt(c.alertas.length)} leitura(s) recusada(s) (não contadas)</p>`:""}
     <div class="row" style="margin-top:10px"><button class="btn" type="button" id="bUndo"${c.lidos.length?"":" disabled"}>↶ Desfazer última</button><button class="btn" type="button" id="bPausa">⏸ Pausar</button></div>
