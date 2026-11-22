@@ -186,7 +186,7 @@ body.mvon{overflow:hidden}
 // e devolve as cargas (leituras + fotos) em arquivo.
 // A comunicação direta com o ERP (API) entra depois, no lugar do arquivo.
 // ======================================================================
-const VER="1.4.2";
+const VER="1.4.3";
 // esconde o teclado virtual (Chrome/Android: VirtualKeyboard API) sem tirar o foco do campo
 const kbHide=()=>{try{if(semTeclado()&&navigator.virtualKeyboard)navigator.virtualKeyboard.hide()}catch(e){}};
 // leitura sem teclado na tela (padrão): o campo oculto recebe o foco como "somente leitura" (o Android não abre o teclado)
@@ -461,7 +461,7 @@ function onRead(raw,src){
   const P=scanParse(String(raw).trim());
   // só vale leitura da etiqueta inteira (código de barras SAI ou QR Abrapa) feita pelo leitor ou pela câmera
   if(src!=="scan"||(P&&!P.bad&&!P.sai)){
-    c.alertas.push({p:P&&!P.bad?(P.prensa||0):0,n:P&&!P.bad?P.num:0,l:"",k:"dig",raw:String(raw).slice(0,40),t:nowISO()});saveState();sBad();
+    (c.dig=c.dig||[]).push({p:P&&!P.bad?(P.prensa||0):0,n:P&&!P.bad?P.num:0,raw:String(raw).slice(0,40),t:nowISO()});saveState();sBad();
     lockScreen("bad",`<h3>⚠ DIGITAÇÃO NÃO PERMITIDA</h3><p>O fardo só conta quando a <b>etiqueta é lida</b> com o <b>gatilho do coletor</b>.</p><p><b>Não foi contado.</b> A tentativa ficou registrada na carga.</p><p style="font-size:15px">Etiqueta danificada ou fardo não encontrado? Feche a carga como <b>incompleta</b> e informe o motivo.</p>`,[["Entendi — continuar",unlock]]);return}
   if(!P||P.bad){ui.flash={c:"dup",t:"Código não reconhecido"};sDup();render();return}
   const F=findFard(P,new Set(c.itens.map(x=>String(x[0]))));if(F&&!F.amb)F.src=src;
@@ -675,7 +675,7 @@ document.addEventListener("visibilitychange",()=>{if(document.visibilityState===
 function exportar(){const cs=S.cargas.filter(c=>c.status==="fechada");if(!cs.length){toast("Nenhuma carga fechada para exportar.");return}
   const j={tipo:"rsp-carregamento-leituras",v:1,disp:S.disp||"",app:VER,exportado:nowISO(),pacote:PAC?PAC.gerado:null,
     cargas:cs.map(c=>({id:c.id,oid:c.oid,ordem:c.ordem,placa:c.placa,cli:c.cli,emissao:c.emissao,itens:c.itens,conf:c.conf,disp:c.disp,inicio:c.inicio,fim:c.fim,parcial:c.parcial,motivo:c.motivo,
-      fotoPlaca:c.fotoPlaca,semFotoPlaca:c.semFotoPlaca,fotoLacre:c.fotoLacre,semFotoLacre:c.semFotoLacre,lidos:c.lidos,alertas:c.alertas,desc:c.desc}))};
+      fotoPlaca:c.fotoPlaca,semFotoPlaca:c.semFotoPlaca,fotoLacre:c.fotoLacre,semFotoLacre:c.semFotoLacre,lidos:c.lidos,alertas:c.alertas,desc:c.desc,dig:c.dig||[]}))};
   const d=new Date(),p=n=>String(n).padStart(2,"0"),cl=t=>String(t||"").replace(/[\\/:*?"<>|]+/g," ").replace(/\s+/g," ").trim();
   const name=`${cl("Cargas do coletor"+(S.disp?` (${S.disp})`:""))} - ${cl(PAC&&PAC.emp)||"Algodoeira"} - ${p(d.getDate())}-${p(d.getMonth()+1)}-${d.getFullYear()} - ${p(d.getHours())}h${p(d.getMinutes())}m${p(d.getSeconds())}s.txt`;
   const blob=new Blob([JSON.stringify(j)],{type:"text/plain"});let file=null,canSh=false;
