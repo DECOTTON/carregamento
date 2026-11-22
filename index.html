@@ -186,9 +186,9 @@ body.mvon{overflow:hidden}
 // e devolve as cargas (leituras + fotos) em arquivo.
 // A comunicação direta com o ERP (API) entra depois, no lugar do arquivo.
 // ======================================================================
-const VER="1.4.0";
-// leitura sem teclado na tela (padrão): nenhum campo fica em foco e o app recebe as teclas que o leitor envia.
-// Se o leitor do aparelho só escrever em campo de texto, desligue no Menu (volta o campo oculto em foco, com teclado).
+const VER="1.4.1";
+// leitura sem teclado na tela (padrão): o campo oculto recebe o foco como "somente leitura" (o Android não abre o teclado)
+// e logo depois volta a aceitar texto, para o leitor do coletor escrever nele. Se o teclado aparecer ou o gatilho não ler, desligue no Menu.
 const KB_LS="car_leitura";const semTeclado=()=>{try{return localStorage.getItem(KB_LS)!=="campo"}catch(e){return true}};
 const $=s=>document.querySelector(s);
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -418,7 +418,7 @@ function reduzFoto(f){return new Promise((ok,ko)=>{const u=URL.createObjectURL(f
   const k=Math.min(1,1280/w),cv=document.createElement("canvas");cv.width=Math.round(w*k);cv.height=Math.round(h*k);
   cv.getContext("2d").drawImage(im,sx,sy,w,h,0,0,cv.width,cv.height);URL.revokeObjectURL(u);ok(cv.toDataURL("image/jpeg",.72))}catch(e){ko(e)}};im.onerror=()=>{URL.revokeObjectURL(u);ko()};im.src=u})}
 
-function focusScan(){const i=$("#scan");const c=cur();if(semTeclado()){if(i&&document.activeElement===i)i.blur();return}if(ui.kbOff)return;if(i&&c&&c.status==="carregando"&&!ui.lock&&!$(".ovl")&&!$(".cam")&&!$(".mapv")&&document.activeElement!==i){try{i.focus({preventScroll:true})}catch(e){i.focus()}}}
+function focusScan(){const i=$("#scan");const c=cur();if(ui.kbOff&&!semTeclado())return;if(i&&c&&c.status==="carregando"&&!ui.lock&&!$(".ovl")&&!$(".cam")&&!$(".mapv")&&document.activeElement!==i){const sk=semTeclado();if(sk)i.readOnly=true;try{i.focus({preventScroll:true})}catch(e){i.focus()}if(sk)setTimeout(()=>{i.readOnly=false},120)}}
 function wire(){const on=(id,f)=>{const e=$(id);if(e)e.onclick=f};on("#bPac",()=>$("#fPac").click());on("#bExp",exportar)}
 // campo de leitura fixo (nunca é recriado: o teclado do coletor continua aberto entre as leituras)
 // segurança: só conta o que veio do leitor (gatilho) ou da câmera. O leitor "digita" a etiqueta inteira em poucos
@@ -443,7 +443,7 @@ setInterval(()=>{const i=$("#scan");if(!i||ui.lock)return;const v=i.value;if(v!=
   if(v&&Date.now()-_pt>350&&(/\/00\/\d{18}/.test(v)||v.replace(/\D/g,"").length>=12)&&_scanGo)_scanGo()},150);
 let _kb="",_kt=0,_kto=null,_k0=0,_kmax=0;
 const kbFonte=()=>{const n=_kb.length;if(n<12)return"dig";const med=(_kt-_k0)/Math.max(1,n-1);return(med<=KS_MED&&_kmax<=KS_MAX)?"scan":"dig"};
-document.addEventListener("keydown",e=>{const t=e.target;if(t&&(t.tagName==="INPUT"||t.tagName==="TEXTAREA"))return;if(ui.lock)return;const c=cur();if(!c||c.status!=="carregando")return;
+document.addEventListener("keydown",e=>{const t=e.target;if(t&&(t.tagName==="INPUT"||t.tagName==="TEXTAREA")&&!(t.id==="scan"&&t.readOnly))return;if(ui.lock)return;const c=cur();if(!c||c.status!=="carregando")return;
   if(e.key==="Enter"){if(_kb.length>=6){const v=_kb,f=kbFonte();_kb="";noteRaw(v);onRead(v,f)}_kb="";return}
   if(e.key&&e.key.length===1){const n=Date.now();if(n-_kt>300){_kb="";_k0=n;_kmax=0}else if(_kb)_kmax=Math.max(_kmax,n-_kt);_kb+=e.key;_kt=n;clearTimeout(_kto);
     _kto=setTimeout(()=>{if(_kb.length>=12){const v=_kb,f=kbFonte();_kb="";noteRaw(v);onRead(v,f)}else _kb=""},350)}},true);
