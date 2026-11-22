@@ -186,7 +186,9 @@ body.mvon{overflow:hidden}
 // e devolve as cargas (leituras + fotos) em arquivo.
 // A comunicação direta com o ERP (API) entra depois, no lugar do arquivo.
 // ======================================================================
-const VER="1.4.1";
+const VER="1.4.2";
+// esconde o teclado virtual (Chrome/Android: VirtualKeyboard API) sem tirar o foco do campo
+const kbHide=()=>{try{if(semTeclado()&&navigator.virtualKeyboard)navigator.virtualKeyboard.hide()}catch(e){}};
 // leitura sem teclado na tela (padrão): o campo oculto recebe o foco como "somente leitura" (o Android não abre o teclado)
 // e logo depois volta a aceitar texto, para o leitor do coletor escrever nele. Se o teclado aparecer ou o gatilho não ler, desligue no Menu.
 const KB_LS="car_leitura";const semTeclado=()=>{try{return localStorage.getItem(KB_LS)!=="campo"}catch(e){return true}};
@@ -418,7 +420,7 @@ function reduzFoto(f){return new Promise((ok,ko)=>{const u=URL.createObjectURL(f
   const k=Math.min(1,1280/w),cv=document.createElement("canvas");cv.width=Math.round(w*k);cv.height=Math.round(h*k);
   cv.getContext("2d").drawImage(im,sx,sy,w,h,0,0,cv.width,cv.height);URL.revokeObjectURL(u);ok(cv.toDataURL("image/jpeg",.72))}catch(e){ko(e)}};im.onerror=()=>{URL.revokeObjectURL(u);ko()};im.src=u})}
 
-function focusScan(){const i=$("#scan");const c=cur();if(ui.kbOff&&!semTeclado())return;if(i&&c&&c.status==="carregando"&&!ui.lock&&!$(".ovl")&&!$(".cam")&&!$(".mapv")&&document.activeElement!==i){const sk=semTeclado();if(sk)i.readOnly=true;try{i.focus({preventScroll:true})}catch(e){i.focus()}if(sk)setTimeout(()=>{i.readOnly=false},120)}}
+function focusScan(){const i=$("#scan");const c=cur();if(ui.kbOff&&!semTeclado())return;if(i&&c&&c.status==="carregando"&&!ui.lock&&!$(".ovl")&&!$(".cam")&&!$(".mapv")&&document.activeElement!==i){const sk=semTeclado();i.setAttribute("virtualkeyboardpolicy",sk?"manual":"auto");if(sk)i.readOnly=true;try{i.focus({preventScroll:true})}catch(e){i.focus()}if(sk){kbHide();setTimeout(()=>{i.readOnly=false;kbMove(i);kbHide();setTimeout(kbHide,150)},120)}}}
 function wire(){const on=(id,f)=>{const e=$(id);if(e)e.onclick=f};on("#bPac",()=>$("#fPac").click());on("#bExp",exportar)}
 // campo de leitura fixo (nunca é recriado: o teclado do coletor continua aberto entre as leituras)
 // segurança: só conta o que veio do leitor (gatilho) ou da câmera. O leitor "digita" a etiqueta inteira em poucos
@@ -429,7 +431,8 @@ const ksFonte=()=>{const k=_ks;if(k.cola)return"dig";if(k.bulk)return"scan";if(k
 (()=>{const i=$("#scan");let tm=null;const go=()=>{clearTimeout(tm);const v=i.value.trim(),f=ksFonte();i.value="";_pv="";ksReset();if(v)onRead(v,f)};
   _scanGo=go;
     i.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key==="Tab"){e.preventDefault();go()}});
-  i.addEventListener("focus",()=>{ui.kbOff=false});
+  i.addEventListener("focus",()=>{ui.kbOff=false;kbHide()});
+  if(navigator.virtualKeyboard)try{navigator.virtualKeyboard.addEventListener("geometrychange",()=>{if(document.activeElement===i&&navigator.virtualKeyboard.boundingRect.height>0)kbHide()})}catch(e){}
   i.addEventListener("paste",()=>{_ks.cola=true});i.addEventListener("drop",()=>{_ks.cola=true});
   i.addEventListener("input",e=>{clearTimeout(tm);const v=i.value,now=Date.now(),add=v.length-_ks.len;_ks.len=v.length;
     if(!v){ksReset();return}
@@ -442,6 +445,8 @@ let _pv="",_pt=0;
 setInterval(()=>{const i=$("#scan");if(!i||ui.lock)return;const v=i.value;if(v!==_pv){_pv=v;_pt=Date.now();if(v)noteRaw(v);return}
   if(v&&Date.now()-_pt>350&&(/\/00\/\d{18}/.test(v)||v.replace(/\D/g,"").length>=12)&&_scanGo)_scanGo()},150);
 let _kb="",_kt=0,_kto=null,_k0=0,_kmax=0;
+// leitura que começou enquanto o campo estava "somente leitura": passa o que já chegou para o campo, mantendo a medição de velocidade
+function kbMove(i){if(!_kb)return;clearTimeout(_kto);i.value=_kb;_ks={n:_kb.length,t0:_k0,last:_kt,max:_kmax,bulk:false,cola:false,len:_kb.length};_pv=i.value;_pt=Date.now();_kb=""}
 const kbFonte=()=>{const n=_kb.length;if(n<12)return"dig";const med=(_kt-_k0)/Math.max(1,n-1);return(med<=KS_MED&&_kmax<=KS_MAX)?"scan":"dig"};
 document.addEventListener("keydown",e=>{const t=e.target;if(t&&(t.tagName==="INPUT"||t.tagName==="TEXTAREA")&&!(t.id==="scan"&&t.readOnly))return;if(ui.lock)return;const c=cur();if(!c||c.status!=="carregando")return;
   if(e.key==="Enter"){if(_kb.length>=6){const v=_kb,f=kbFonte();_kb="";noteRaw(v);onRead(v,f)}_kb="";return}
