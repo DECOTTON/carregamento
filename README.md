@@ -9,3 +9,5 @@ e confere lote e quantidade pedida. Feito para o coletor Chainway C72 (ou celula
 - Exporta o arquivo de **cargas** (leituras + fotos) para importar no app principal.
 
 Nenhum dado de ordens, lotes ou fardos fica neste repositório: os dados ficam só nos aparelhos.
+
+**Segurança:** só conta fardo com a etiqueta lida pelo gatilho do coletor ou pela câmera. Número digitado (ou colado) não conta, trava a tela e fica registrado na carga como tentativa (alerta `dig`). Fardo não encontrado: feche a carga como incompleta e informe o motivo.

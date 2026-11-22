@@ -172,7 +172,7 @@ body.mvon{overflow:hidden}
 </head>
 <body>
 <header><h1><img src="logo.png" alt="" class="hlogo">Carregamento<small id="hSub">Sem pacote carregado</small></h1><button class="hb" id="bMenu" type="button">☰ Menu</button>
-<div id="sbar" class="sbar hide"><input class="scan" id="scan" autocomplete="off" autocorrect="off" spellcheck="false" inputmode="numeric" enterkeyhint="go" placeholder="Etiqueta SAI ou Nº do fardo"><button class="sb" id="bGo" type="button">OK</button><button class="sb pri" id="bCam" type="button" title="Câmera">📷</button></div></header>
+<div id="sbar" class="sbar hide"><input class="scan" id="scan" autocomplete="off" autocorrect="off" spellcheck="false" inputmode="none" enterkeyhint="go" placeholder="Leia a etiqueta (gatilho ou 📷)"><button class="sb" id="bGo" type="button">OK</button><button class="sb pri" id="bCam" type="button" title="Câmera">📷</button></div></header>
 <main id="app"></main>
 <input type="file" id="fPac" accept=".txt,.json,text/plain,application/json" hidden>
 <input type="file" id="fFoto" accept="image/*" capture="environment" hidden>
@@ -185,7 +185,7 @@ body.mvon{overflow:hidden}
 // e devolve as cargas (leituras + fotos) em arquivo.
 // A comunicação direta com o ERP (API) entra depois, no lugar do arquivo.
 // ======================================================================
-const VER="1.1.12";
+const VER="1.2.0";
 const $=s=>document.querySelector(s);
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=n=>n==null?"—":Number(n).toLocaleString("pt-BR");
@@ -417,30 +417,46 @@ function reduzFoto(f){return new Promise((ok,ko)=>{const u=URL.createObjectURL(f
 function focusScan(){const i=$("#scan");const c=cur();if(ui.kbOff)return;if(i&&c&&c.status==="carregando"&&!ui.lock&&!$(".ovl")&&!$(".cam")&&!$(".mapv")&&document.activeElement!==i){try{i.focus({preventScroll:true})}catch(e){i.focus()}}}
 function wire(){const on=(id,f)=>{const e=$(id);if(e)e.onclick=f};on("#bPac",()=>$("#fPac").click());on("#bExp",exportar)}
 // campo de leitura fixo (nunca é recriado: o teclado do coletor continua aberto entre as leituras)
-(()=>{const i=$("#scan");let tm=null;const go=()=>{clearTimeout(tm);const v=i.value.trim();i.value="";_pv="";if(v)onRead(v)};
+// segurança: só conta o que veio do leitor (gatilho) ou da câmera. O leitor "digita" a etiqueta inteira em poucos
+// milissegundos (ou de uma vez); uma pessoa digitando é muito mais lenta. Colar também é recusado.
+const KS_MED=50,KS_MAX=200;let _ks=null,_scanGo=null;
+const ksReset=()=>{_ks={n:0,t0:0,last:0,max:0,bulk:false,cola:false,len:0}};ksReset();
+const ksFonte=()=>{const k=_ks;if(k.cola)return"dig";if(k.bulk)return"scan";if(k.n<12)return"dig";const med=(k.last-k.t0)/Math.max(1,k.n-1);return(med<=KS_MED&&k.max<=KS_MAX)?"scan":"dig"};
+(()=>{const i=$("#scan");let tm=null;const go=()=>{clearTimeout(tm);const v=i.value.trim(),f=ksFonte();i.value="";_pv="";ksReset();if(v)onRead(v,f)};
+  _scanGo=go;
   $("#bGo").onclick=go;$("#bCam").onclick=openCam;
   i.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key==="Tab"){e.preventDefault();go()}});
   i.addEventListener("focus",()=>{ui.kbOff=false});
-  i.addEventListener("input",()=>{clearTimeout(tm);const v=i.value;if(v)noteRaw(v);if(/\/00\/\d{18}/.test(v)||/\d{20}/.test(v.replace(/\D/g,"")))tm=setTimeout(go,180)});
+  i.addEventListener("paste",()=>{_ks.cola=true});i.addEventListener("drop",()=>{_ks.cola=true});
+  i.addEventListener("input",e=>{clearTimeout(tm);const v=i.value,now=Date.now(),add=v.length-_ks.len;_ks.len=v.length;
+    if(!v){ksReset();return}
+    if(e.inputType==="insertFromPaste"||e.inputType==="insertFromDrop")_ks.cola=true;
+    if(add>=4)_ks.bulk=true;else if(add>0){if(_ks.n===0)_ks.t0=now;else _ks.max=Math.max(_ks.max,now-_ks.last);_ks.last=now;_ks.n+=add}
+    noteRaw(v);if(/\/00\/\d{18}/.test(v)||/\d{20}/.test(v.replace(/\D/g,"")))tm=setTimeout(go,180)});
   i.addEventListener("blur",()=>setTimeout(()=>{const a=document.activeElement;if(!a||a===document.body)focusScan()},300))})();
 document.addEventListener("pointerdown",e=>{const b=e.target.closest&&e.target.closest("button,.btn");if(b&&document.activeElement===$("#scan"))e.preventDefault()},true);
 let _pv="",_pt=0;
 setInterval(()=>{const i=$("#scan");if(!i||ui.lock)return;const v=i.value;if(v!==_pv){_pv=v;_pt=Date.now();if(v)noteRaw(v);return}
-  if(v&&Date.now()-_pt>350&&(/\/00\/\d{18}/.test(v)||v.replace(/\D/g,"").length>=12)){i.value="";_pv="";onRead(v.trim())}},150);
-let _kb="",_kt=0,_kto=null;
+  if(v&&Date.now()-_pt>350&&(/\/00\/\d{18}/.test(v)||v.replace(/\D/g,"").length>=12)&&_scanGo)_scanGo()},150);
+let _kb="",_kt=0,_kto=null,_k0=0,_kmax=0;
+const kbFonte=()=>{const n=_kb.length;if(n<12)return"dig";const med=(_kt-_k0)/Math.max(1,n-1);return(med<=KS_MED&&_kmax<=KS_MAX)?"scan":"dig"};
 document.addEventListener("keydown",e=>{const t=e.target;if(t&&(t.tagName==="INPUT"||t.tagName==="TEXTAREA"))return;if(ui.lock)return;const c=cur();if(!c||c.status!=="carregando")return;
-  if(e.key==="Enter"){if(_kb.length>=6){const v=_kb;_kb="";noteRaw(v);onRead(v)}_kb="";return}
-  if(e.key&&e.key.length===1){const n=Date.now();if(n-_kt>300)_kb="";_kb+=e.key;_kt=n;clearTimeout(_kto);
-    _kto=setTimeout(()=>{if(_kb.length>=12){const v=_kb;_kb="";noteRaw(v);onRead(v)}else _kb=""},350)}},true);
+  if(e.key==="Enter"){if(_kb.length>=6){const v=_kb,f=kbFonte();_kb="";noteRaw(v);onRead(v,f)}_kb="";return}
+  if(e.key&&e.key.length===1){const n=Date.now();if(n-_kt>300){_kb="";_k0=n;_kmax=0}else if(_kb)_kmax=Math.max(_kmax,n-_kt);_kb+=e.key;_kt=n;clearTimeout(_kto);
+    _kto=setTimeout(()=>{if(_kb.length>=12){const v=_kb,f=kbFonte();_kb="";noteRaw(v);onRead(v,f)}else _kb=""},350)}},true);
 function noteRaw(v){ui.lastRaw={v:String(v).slice(0,80),t:Date.now()};const e=$("#raw");if(e)e.textContent=`Última leitura recebida: ${ui.lastRaw.v}`}
 
 // ---------- uma leitura ----------
-function onRead(raw){
+function onRead(raw,src){
   if(ui.lock){sBad();return}
   const c=cur();if(!c||c.status!=="carregando")return;
   const P=scanParse(String(raw).trim());
+  // só vale leitura da etiqueta inteira (código de barras SAI ou QR Abrapa) feita pelo leitor ou pela câmera
+  if(src!=="scan"&&src!=="cam"||(P&&!P.bad&&!P.sai)){
+    c.alertas.push({p:P&&!P.bad?(P.prensa||0):0,n:P&&!P.bad?P.num:0,l:"",k:"dig",raw:String(raw).slice(0,40),t:nowISO()});saveState();sBad();
+    lockScreen("bad",`<h3>⚠ DIGITAÇÃO NÃO PERMITIDA</h3><p>O fardo só conta quando a <b>etiqueta é lida</b> com o gatilho do coletor ou com a câmera 📷.</p><p><b>Não foi contado.</b> A tentativa ficou registrada na carga.</p><p style="font-size:15px">Etiqueta danificada ou fardo não encontrado? Feche a carga como <b>incompleta</b> e informe o motivo.</p>`,[["Entendi — continuar",unlock]]);return}
   if(!P||P.bad){ui.flash={c:"dup",t:"Código não reconhecido"};sDup();render();return}
-  const F=findFard(P,new Set(c.itens.map(x=>String(x[0]))));
+  const F=findFard(P,new Set(c.itens.map(x=>String(x[0]))));if(F&&!F.amb)F.src=src;
   if(!F){c.desc.push({p:P.prensa||0,n:P.num,t:nowISO()});saveState();
     lockScreen("warn",`<h3>⚠ FARDO FORA DO PACOTE</h3><p>P${P.prensa||"?"} ${g3(P.num)} não está no pacote deste aparelho (classificado depois da última sincronização?).</p><p><b>Não foi contado.</b> Baixe um pacote novo ou separe o fardo.</p>`,[["Entendi — continuar",unlock]]);return}
   if(F.amb){showSheet(`<h3>Nº ${g3(P.num)} existe nas prensas ${F.amb.map(x=>x.p).join(" e ")}</h3><p>Qual é a deste fardo?</p>${F.amb.map(x=>`<button class="btn big" type="button" data-amb="${x.p}" style="margin-bottom:8px">Prensa ${x.p} · lote ${esc(x.lote||"sem lote")}</button>`).join("")}`,o=>o.querySelectorAll("[data-amb]").forEach(b=>b.onclick=()=>{closeSheet();const F2=F.amb.find(x=>String(x.p)===b.dataset.amb);conta(c,F2)}));return}
@@ -454,7 +470,7 @@ function conta(c,F){const key=`${F.p}-${F.n}`,rec=k=>{c.alertas.push({p:F.p,n:F.
   if(!q){rec("lote");sBad();lockScreen("bad",`<h3>⚠ NÃO É DESTA CARGA</h3><p>Fardo <b>P${F.p} ${g3(F.n)}</b> é do lote</p><div class="lt">${esc(F.lote)}</div><p>${esc(prodOfLote(F.lote)||"")}</p><p>Esta carga leva os lotes <b>${c.itens.map(x=>esc(x[0])).join(", ")}</b>.<br><b>Este fardo não foi contado.</b></p>`,[["Retirei o fardo — continuar",unlock]]);return}
   const n=lidosLote(c,F.lote);
   if(n>=q){rec("qtd");sBad();lockScreen("warn",`<h3>⚠ LOTE JÁ COMPLETO</h3><p>O lote</p><div class="lt">${esc(F.lote)}</div><p>já tem <b>${fmt(n)} de ${fmt(q)}</b> fardos pedidos nesta carga.</p><p><b>Este fardo não foi contado.</b> Retire-o do caminhão.</p>`,[["Retirei o fardo — continuar",unlock]]);return}
-  c.lidos.push({p:F.p,n:F.n,l:F.lote,t:nowISO()});saveState();ui.lastLote=F.lote;
+  c.lidos.push({p:F.p,n:F.n,l:F.lote,t:nowISO(),o:F.src||"scan"});saveState();ui.lastLote=F.lote;
   if(completa(c)){ui.flash={c:"done",t:"✓ CARGA COMPLETA"};beep(1500,160,4);vib([150,80,150,80,150])}
   else if(n+1===q){ui.flash={c:"ok",t:`✓ P${F.p} ${g3(F.n)} · LOTE ${F.lote} COMPLETO (${fmt(q)})`};sLote()}
   else{ui.flash={c:"ok",t:`✓ P${F.p} ${g3(F.n)} · lote ${F.lote} · ${fmt(n+1)}/${fmt(q)}`};sOk()}
@@ -681,7 +697,7 @@ async function openCam(){
       if(bd){const r=await bd.detect(v);const h=(r||[]).find(x=>scanParse(x.rawValue))||(r||[])[0];txt=h&&h.rawValue}
       else{const sw=Math.round(W*.84),sh=Math.round(H*.5),sx=Math.round((W-sw)/2),sy=Math.round(H*.25),k=Math.min(1,1280/sw);cv.width=Math.round(sw*k);cv.height=Math.round(sh*k);ctx.drawImage(v,sx,sy,sw,sh,0,0,cv.width,cv.height);
         const rs=await window.ZXingWASM.readBarcodes(ctx.getImageData(0,0,cv.width,cv.height),{tryHarder:true,formats:["QRCode","Code128","ITF","DataMatrix"],maxNumberOfSymbols:1});const h=(rs||[]).find(x=>x.text);txt=h&&h.text}
-      const t=Date.now();if(txt&&!(txt===last&&t-lastT<2500)){last=txt;lastT=t;onRead(txt)}}catch(e){}}
+      const t=Date.now();if(txt&&!(txt===last&&t-lastT<2500)){last=txt;lastT=t;onRead(txt,"cam")}}catch(e){}}
     setTimeout(tick,bd?120:200)};tick()}
 
 // ---------- início ----------
