@@ -1,5 +1,5 @@
 // Service worker: deixa o app disponível sem internet
-const CACHE="carregamento-v30";
+const CACHE="carregamento-v31";
 const SHELL=["./","./index.html","./manifest.webmanifest","./icon-192.png","./icon-512.png","./icon-180.png","./logo.png","./icon-maskable-192.png","./icon-maskable-512.png"];
 const EXT=[];
 self.addEventListener("install",e=>{e.waitUntil((async()=>{const c=await caches.open(CACHE);await c.addAll(SHELL);
