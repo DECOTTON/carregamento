@@ -16,7 +16,7 @@
 html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
 button{font:inherit;cursor:pointer}
 header{flex-wrap:wrap;position:sticky;top:0;z-index:5;background:var(--acc);color:#fff;padding:10px 14px;padding-top:max(10px,env(safe-area-inset-top));display:flex;align-items:center;gap:10px}
-header h1{font-size:19px;margin:0;flex:1;display:flex;flex-wrap:wrap;align-items:center;column-gap:8px}header h1 small{flex:1 1 100%}.hlogo{width:30px;height:30px;border-radius:7px;background:#fff}
+header h1{font-size:19px;margin:0;flex:1;display:flex;flex-wrap:wrap;align-items:center;column-gap:8px}header h1 small{flex:1 1 100%}.hlogo{width:30px;height:30px;border-radius:7px;background:transparent;box-shadow:0 0 0 1px rgba(255,255,255,.28)}
 header small{display:block;font-size:12px;opacity:.85;font-weight:500}
 .hb{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:8px;padding:7px 10px;font-size:14px;font-weight:700}
 main{padding:12px;max-width:640px;margin:0 auto;padding-bottom:40px}
@@ -186,7 +186,7 @@ body.mvon{overflow:hidden}
 // e devolve as cargas (leituras + fotos) em arquivo.
 // A comunicação direta com o ERP (API) entra depois, no lugar do arquivo.
 // ======================================================================
-const VER="1.4.3";
+const VER="1.4.4";
 // esconde o teclado virtual (Chrome/Android: VirtualKeyboard API) sem tirar o foco do campo
 const kbHide=()=>{try{if(semTeclado()&&navigator.virtualKeyboard)navigator.virtualKeyboard.hide()}catch(e){}};
 // leitura sem teclado na tela (padrão): o campo oculto recebe o foco como "somente leitura" (o Android não abre o teclado)
